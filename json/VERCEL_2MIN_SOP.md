@@ -148,6 +148,41 @@ CLI 질문 기본값:
 
 ---
 
+## 4. Vercel Analytics 활성화 및 연동 방법
+
+### 1) Vercel 대시보드 설정
+1. Vercel Dashboard (`https://vercel.com/dashboard`) 접속
+2. 해당 프로젝트 선택 후 **Analytics** 탭 클릭
+3. **Enable Analytics** (또는 Quickstart) 버튼 클릭하여 활성화
+
+### 2) 프로젝트 코드 연동
+
+#### A. 순수 HTML (Static Site) 인 경우
+`index.html` 파일의 `</body>` 태그 바로 직전에 아래 스크립트를 추가합니다:
+```html
+<!-- Vercel Web Analytics -->
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+```
+
+#### B. React / Next.js / Vite (npm 패키지 사용) 인 경우
+1. 패키지 설치:
+   ```bash
+   npm install @vercel/analytics
+   ```
+2. 진입점 파일(`main.jsx`, `App.jsx` 또는 `_app.tsx`)에 스크립트 추가:
+   ```jsx
+   import { inject } from '@vercel/analytics';
+   
+   // 앱 초기화 시 호출
+   inject();
+   ```
+   *(React 컴포넌트인 경우 `<Analytics />` 컴포넌트 사용 가능)*
+
+---
+
 ## 최종 제출 4개
 
 1. GitHub repository URL
