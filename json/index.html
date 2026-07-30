@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>음식 온라인 설문지</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Helvetica Family & Grotesque Style Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;600;700&family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Nordic Organic Architectural Palette */
+      --accent: #ff3b00; /* Hot Red-Orange Focal Point */
+      --accent-hover: #e03400;
+      --accent-light: #fff0eb;
+      
+      --bg-color: #f2efe9; /* Nordic Warm Linen/Stone */
+      --card-bg: #faf9f6; /* Soft Clay Ceramic */
+      --card-border: #e0dad0; /* Birch/Plywood Edge Gray */
+      
+      --text-main: #191817; /* Slate Black */
+      --text-sub: #736e68; /* Warm Stone Gray */
+      --input-bg: #ffffff;
+      
+      --radius-architectural: 18px;
+      --radius-sm: 8px;
+      --shadow-nordic: 0 16px 40px rgba(25, 24, 23, 0.05), 0 2px 6px rgba(25, 24, 23, 0.02);
+      --transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Arimo', 'Helvetica Neue', Helvetica, 'Noto Sans KR', sans-serif;
+      background-color: var(--bg-color);
+      min-height: 100vh;
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.02em;
+    }
+
+    /* Structural Nordic Framing: Wood Joinery & Asymmetric Grid Inspired */
+    .container {
+      width: 100%;
+      max-width: 660px;
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: var(--radius-architectural);
+      padding: 44px;
+      box-shadow: var(--shadow-nordic);
+      position: relative;
+    }
+
+    /* Nordic Architectural Geometric Accent Notch */
+    .container::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      right: 48px;
+      width: 48px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 0 0 4px 4px;
+    }
+
+    header {
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 1.85rem;
+      font-weight: 900;
+      color: var(--text-main);
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
+    /* Interactive Stepper Indicator */
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--card-border);
+      transition: var(--transition);
+    }
+
+    #tab1:checked ~ header .stepper .dot1,
+    #tab2:checked ~ header .stepper .dot2,
+    #tab3:checked ~ header .stepper .dot3 {
+      background: var(--accent);
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    /* CSS Radio Tabs - Architectural Block Navigation */
+    .tab-inputs {
+      display: none;
+    }
+
+    .tab-nav {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background: #e7e2d7;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 36px;
+      gap: 4px;
+      border: 1px solid var(--card-border);
+    }
+
+    .tab-label {
+      text-align: center;
+      padding: 12px 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      user-select: none;
+    }
+
+    .tab-label:hover {
+      color: var(--text-main);
+    }
+
+    /* Active Tab Block */
+    #tab1:checked ~ .tab-nav label[for="tab1"],
+    #tab2:checked ~ .tab-nav label[for="tab2"],
+    #tab3:checked ~ .tab-nav label[for="tab3"] {
+      background: #ffffff;
+      color: var(--text-main);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      font-weight: 800;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.25s ease forwards;
+    }
+
+    #tab1:checked ~ .content-wrapper #content1,
+    #tab2:checked ~ .content-wrapper #content2,
+    #tab3:checked ~ .content-wrapper #content3 {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Form Design */
+    .form-group {
+      margin-bottom: 32px;
+    }
+
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+
+    .form-label .q-num {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    /* Interactive Visual Chips with Dynamic Scale & Active Border */
+    .chips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    .custom-chip {
+      position: relative;
+    }
+
+    .custom-chip input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .chip-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 14px 16px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--card-border);
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: var(--transition);
+      user-select: none;
+      min-height: 48px;
+    }
+
+    .custom-chip:hover .chip-btn {
+      border-color: #b8b0a2;
+      transform: translateY(-2px);
+    }
+
+    .custom-chip input:checked + .chip-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(255, 59, 0, 0.25);
+      transform: translateY(-2px);
+    }
+
+    /* Interactive Rating Buttons (1 to 5) */
+    .rating-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .rating-box {
+      position: relative;
+    }
+
+    .rating-box input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .rating-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 6px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--card-border);
+      border-radius: var(--radius-md);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .rating-btn span.sub {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+
+    .rating-box:hover .rating-btn {
+      border-color: #b8b0a2;
+    }
+
+    .rating-box input:checked + .rating-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(255, 59, 0, 0.25);
+    }
+
+    .rating-box input:checked + .rating-btn span.sub {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Input & Textarea */
+    .text-input, textarea {
+      width: 100%;
+      padding: 16px 18px;
+      background: var(--input-bg);
+      border: 1.5px solid var(--card-border);
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 0.92rem;
+      color: var(--text-main);
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .text-input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255, 59, 0, 0.12);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    /* Swiss Architectural Solid Button */
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--text-main);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: var(--transition);
+      margin-top: 8px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .submit-btn:hover {
+      background: var(--accent);
+      box-shadow: 0 6px 20px rgba(255, 59, 0, 0.3);
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 28px 20px;
+      }
+      .chips-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Hidden Radio Buttons for CSS Tab Navigation -->
+    <input type="radio" id="tab1" name="survey-tab" class="tab-inputs" checked>
+    <input type="radio" id="tab2" name="survey-tab" class="tab-inputs">
+    <input type="radio" id="tab3" name="survey-tab" class="tab-inputs">
+
+    <header>
+      <h1>음식 취향 질문지</h1>
+      <div class="stepper">
+        <div class="step-dot dot1"></div>
+        <div class="step-dot dot2"></div>
+        <div class="step-dot dot3"></div>
+      </div>
+    </header>
+
+    <!-- Tab Labels Header -->
+    <nav class="tab-nav">
+      <label for="tab1" class="tab-label">오늘 먹은 것</label>
+      <label for="tab2" class="tab-label">비올 때 생각 나는 음식</label>
+      <label for="tab3" class="tab-label">나의 소울 푸드</label>
+    </nav>
+
+    <div class="content-wrapper">
+      <!-- TAB 1: 오늘 먹은 것 -->
+      <section id="content1" class="tab-content">
+        <form action="#" method="get" onsubmit="alert('오늘 먹은 것 설문이 제출되었습니다.'); return false;">
+          <div class="form-group">
+            <label class="form-label">
+              <span>식사 시간대</span>
+              <span class="q-num">01 / 05</span>
+            </label>
+            <div class="chips-grid">
+              <label class="custom-chip">
+                <input type="radio" name="meal_time" value="morning" required>
+                <span class="chip-btn">아침 / 브런치</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="meal_time" value="lunch">
+                <span class="chip-btn">점심</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="meal_time" value="dinner">
+                <span class="chip-btn">저녁</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="meal_time" value="snack">
+                <span class="chip-btn">야식 / 디저트</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="today_menu" class="form-label">
+              <span>오늘 드신 대표 메뉴</span>
+              <span class="q-num">02 / 05</span>
+            </label>
+            <input type="text" id="today_menu" class="text-input" placeholder="메뉴명을 입력해 주세요" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span>식사 방식</span>
+              <span class="q-num">03 / 05</span>
+            </label>
+            <div class="chips-grid">
+              <label class="custom-chip">
+                <input type="radio" name="meal_type" value="home">
+                <span class="chip-btn">집밥 / 요리</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="meal_type" value="restaurant">
+                <span class="chip-btn">외식</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="meal_type" value="delivery">
+                <span class="chip-btn">배달 / 포장</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="meal_type" value="convenience">
+                <span class="chip-btn">간편식</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span>식사 만족도</span>
+              <span class="q-num">04 / 05</span>
+            </label>
+            <div class="rating-row">
+              <label class="rating-box">
+                <input type="radio" name="satisfaction" value="1">
+                <div class="rating-btn">1<span class="sub">아쉬움</span></div>
+              </label>
+              <label class="rating-box">
+                <input type="radio" name="satisfaction" value="2">
+                <div class="rating-btn">2<span class="sub">그저그럼</span></div>
+              </label>
+              <label class="rating-box">
+                <input type="radio" name="satisfaction" value="3">
+                <div class="rating-btn">3<span class="sub">보통</span></div>
+              </label>
+              <label class="rating-box">
+                <input type="radio" name="satisfaction" value="4" checked>
+                <div class="rating-btn">4<span class="sub">좋음</span></div>
+              </label>
+              <label class="rating-box">
+                <input type="radio" name="satisfaction" value="5">
+                <div class="rating-btn">5<span class="sub">최고</span></div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="today_review" class="form-label">
+              <span>한 줄 소감</span>
+              <span class="q-num">05 / 05</span>
+            </label>
+            <textarea id="today_review" placeholder="식사에 대한 짧은 후기를 작성해 주세요"></textarea>
+          </div>
+
+          <button type="submit" class="submit-btn">제출하기</button>
+        </form>
+      </section>
+
+      <!-- TAB 2: 비올 때 생각 나는 음식 -->
+      <section id="content2" class="tab-content">
+        <form action="#" method="get" onsubmit="alert('비 올 때 생각나는 음식 설문이 제출되었습니다.'); return false;">
+          <div class="form-group">
+            <label class="form-label">
+              <span>생각나는 음식 (복수 선택)</span>
+              <span class="q-num">01 / 04</span>
+            </label>
+            <div class="chips-grid">
+              <label class="custom-chip">
+                <input type="checkbox" name="rainy_food" value="pancake">
+                <span class="chip-btn">전 / 부침개</span>
+              </label>
+              <label class="custom-chip">
+                <input type="checkbox" name="rainy_food" value="soup">
+                <span class="chip-btn">칼국수 / 짬뽕</span>
+              </label>
+              <label class="custom-chip">
+                <input type="checkbox" name="rainy_food" value="stew">
+                <span class="chip-btn">찌개류</span>
+              </label>
+              <label class="custom-chip">
+                <input type="checkbox" name="rainy_food" value="bbq">
+                <span class="chip-btn">삼겹살 / 구이</span>
+              </label>
+              <label class="custom-chip">
+                <input type="checkbox" name="rainy_food" value="drink">
+                <span class="chip-btn">막걸리</span>
+              </label>
+              <label class="custom-chip">
+                <input type="checkbox" name="rainy_food" value="coffee">
+                <span class="chip-btn">커피 / 디저트</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span>떠오르는 이유</span>
+              <span class="q-num">02 / 04</span>
+            </label>
+            <div class="chips-grid">
+              <label class="custom-chip">
+                <input type="radio" name="rainy_reason" value="sound" required>
+                <span class="chip-btn">빗소리와 유사함</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="rainy_reason" value="temp">
+                <span class="chip-btn">따뜻함이 필요해서</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="rainy_reason" value="mood">
+                <span class="chip-btn">특유의 분위기</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="rainy_reason" value="habit">
+                <span class="chip-btn">익숙한 습관</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span>선호하는 맛</span>
+              <span class="q-num">03 / 04</span>
+            </label>
+            <div class="chips-grid">
+              <label class="custom-chip">
+                <input type="radio" name="spiciness" value="mild">
+                <span class="chip-btn">순한맛</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="spiciness" value="medium">
+                <span class="chip-btn">칼칼한맛</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="spiciness" value="hot">
+                <span class="chip-btn">매운맛</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="spiciness" value="greasy">
+                <span class="chip-btn">고소한맛</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="rainy_spot" class="form-label">
+              <span>추천 단골집 또는 레시피</span>
+              <span class="q-num">04 / 04</span>
+            </label>
+            <textarea id="rainy_spot" placeholder="나만의 단골집이나 팁을 작성해 주세요"></textarea>
+          </div>
+
+          <button type="submit" class="submit-btn">제출하기</button>
+        </form>
+      </section>
+
+      <!-- TAB 3: 나의 소울 푸드 -->
+      <section id="content3" class="tab-content">
+        <form action="#" method="get" onsubmit="alert('나의 소울 푸드 설문이 제출되었습니다.'); return false;">
+          <div class="form-group">
+            <label for="soul_food_name" class="form-label">
+              <span>나의 소울 푸드</span>
+              <span class="q-num">01 / 05</span>
+            </label>
+            <input type="text" id="soul_food_name" class="text-input" placeholder="음식명을 입력해 주세요" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span>힐링 정도</span>
+              <span class="q-num">02 / 05</span>
+            </label>
+            <div class="rating-row">
+              <label class="rating-box">
+                <input type="radio" name="healing_power" value="1">
+                <div class="rating-btn">50%<span class="sub">기분전환</span></div>
+              </label>
+              <label class="rating-box">
+                <input type="radio" name="healing_power" value="2">
+                <div class="rating-btn">65%<span class="sub">소소함</span></div>
+              </label>
+              <label class="rating-box">
+                <input type="radio" name="healing_power" value="3">
+                <div class="rating-btn">80%<span class="sub">큰위로</span></div>
+              </label>
+              <label class="rating-box">
+                <input type="radio" name="healing_power" value="4" checked>
+                <div class="rating-btn">90%<span class="sub">의지됨</span></div>
+              </label>
+              <label class="rating-box">
+                <input type="radio" name="healing_power" value="5">
+                <div class="rating-btn">100%<span class="sub">완전회복</span></div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span>소울 푸드가 된 이유 (복수 선택)</span>
+              <span class="q-num">03 / 05</span>
+            </label>
+            <div class="chips-grid">
+              <label class="custom-chip">
+                <input type="checkbox" name="soul_reason" value="memory">
+                <span class="chip-btn">추억</span>
+              </label>
+              <label class="custom-chip">
+                <input type="checkbox" name="soul_reason" value="comfort">
+                <span class="chip-btn">위로</span>
+              </label>
+              <label class="custom-chip">
+                <input type="checkbox" name="soul_reason" value="taste">
+                <span class="chip-btn">선호하는 맛</span>
+              </label>
+              <label class="custom-chip">
+                <input type="checkbox" name="soul_reason" value="easy">
+                <span class="chip-btn">부담 없는 식사</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span>찾는 빈도</span>
+              <span class="q-num">04 / 05</span>
+            </label>
+            <div class="chips-grid">
+              <label class="custom-chip">
+                <input type="radio" name="frequency" value="weekly">
+                <span class="chip-btn">주 1회 이상</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="frequency" value="monthly">
+                <span class="chip-btn">월 2~3회</span>
+              </label>
+              <label class="custom-chip">
+                <input type="radio" name="frequency" value="special">
+                <span class="chip-btn">스트레스 받을 때</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="soul_story" class="form-label">
+              <span>소울 푸드 에피소드</span>
+              <span class="q-num">05 / 05</span>
+            </label>
+            <textarea id="soul_story" placeholder="소중한 이야기나 추억을 공유해 주세요"></textarea>
+          </div>
+
+          <button type="submit" class="submit-btn">제출하기</button>
+        </form>
+      </section>
+
+    </div>
+  </div>
+
+</body>
+</html>
