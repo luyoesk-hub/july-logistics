@@ -13,10 +13,12 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: Helvetica, Arial, sans-serif;
+      font-weight: bold;
+      background: #1a1a1a;
       min-height: 100vh;
       padding: 20px;
+      color: #000;
     }
 
     .container {
@@ -25,23 +27,26 @@
     }
 
     header {
-      background: white;
+      background: #f5f5f0;
       padding: 30px;
       border-radius: 12px;
       margin-bottom: 30px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
       text-align: center;
+      border: 2px solid #000;
     }
 
     header h1 {
       font-size: 32px;
-      color: #333;
+      color: #000;
       margin-bottom: 10px;
+      font-weight: bold;
     }
 
     header p {
-      color: #666;
+      color: #000;
       font-size: 14px;
+      font-weight: bold;
     }
 
     .main-grid {
@@ -58,18 +63,20 @@
     }
 
     .card {
-      background: white;
+      background: #f5f5f0;
       border-radius: 12px;
       padding: 25px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      border: 2px solid #000;
     }
 
     .card h2 {
       font-size: 20px;
-      color: #333;
+      color: #000;
       margin-bottom: 20px;
-      border-bottom: 2px solid #667eea;
+      border-bottom: 2px solid #000;
       padding-bottom: 10px;
+      font-weight: bold;
     }
 
     .form-group {
@@ -78,8 +85,8 @@
 
     label {
       display: block;
-      color: #555;
-      font-weight: 500;
+      color: #000;
+      font-weight: bold;
       margin-bottom: 8px;
       font-size: 14px;
     }
@@ -88,17 +95,20 @@
     select {
       width: 100%;
       padding: 12px;
-      border: 1px solid #ddd;
+      border: 1px solid #000;
       border-radius: 6px;
       font-size: 14px;
       transition: border-color 0.3s;
+      background: #fff;
+      color: #000;
+      font-weight: bold;
     }
 
     input:focus,
     select:focus {
       outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      border-color: #000;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
     }
 
     .form-row {
@@ -108,13 +118,13 @@
     }
 
     button {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      background: #000;
+      color: #f5f5f0;
       padding: 12px 24px;
-      border: none;
+      border: 2px solid #000;
       border-radius: 6px;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: bold;
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
       width: 100%;
@@ -122,7 +132,8 @@
 
     button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      background: #333;
     }
 
     button:active {
@@ -143,17 +154,18 @@
     }
 
     .stat-box {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      background: #fff;
+      color: #000;
       padding: 20px;
       border-radius: 8px;
       text-align: center;
+      border: 2px solid #000;
     }
 
     .stat-label {
       font-size: 12px;
-      opacity: 0.9;
       margin-bottom: 8px;
+      font-weight: bold;
     }
 
     .stat-value {
@@ -178,21 +190,23 @@
     }
 
     th {
-      background: #f5f5f5;
-      color: #333;
+      background: #fff;
+      color: #000;
       padding: 12px;
       text-align: left;
-      font-weight: 600;
-      border-bottom: 2px solid #ddd;
+      font-weight: bold;
+      border-bottom: 2px solid #000;
     }
 
     td {
       padding: 12px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid #ddd;
+      color: #000;
+      font-weight: bold;
     }
 
     tr:hover {
-      background: #f9f9f9;
+      background: #f5f5f0;
     }
 
     .badge {
@@ -200,61 +214,67 @@
       padding: 4px 12px;
       border-radius: 20px;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: bold;
     }
 
     .badge-product {
-      background: #e8eef7;
-      color: #667eea;
+      background: #fff;
+      color: #000;
+      border: 1px solid #000;
     }
 
     .loading {
       text-align: center;
-      color: #999;
+      color: #666;
       padding: 20px;
+      font-weight: bold;
     }
 
     .error {
-      background: #fee;
-      color: #c33;
+      background: #fff;
+      color: #000;
       padding: 12px;
       border-radius: 6px;
       margin-bottom: 15px;
       font-size: 14px;
+      border: 2px solid #000;
+      font-weight: bold;
     }
 
     .success {
-      background: #efe;
-      color: #3c3;
+      background: #fff;
+      color: #000;
       padding: 12px;
       border-radius: 6px;
       margin-bottom: 15px;
       font-size: 14px;
+      border: 2px solid #000;
+      font-weight: bold;
     }
 
     .tabs {
       display: flex;
       gap: 10px;
       margin-bottom: 20px;
-      border-bottom: 2px solid #eee;
+      border-bottom: 2px solid #000;
     }
 
     .tab-btn {
       background: none;
       border: none;
-      color: #999;
+      color: #666;
       padding: 12px 20px;
       cursor: pointer;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: bold;
       border-bottom: 2px solid transparent;
       transition: all 0.3s;
       margin-bottom: -2px;
     }
 
     .tab-btn.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
+      color: #000;
+      border-bottom-color: #000;
     }
 
     .tab-content {
@@ -290,71 +310,71 @@
 <body>
   <div class="container">
     <header>
-      <h1>☕ 커피 자판기 매출 시스템</h1>
-      <p>실시간 판매 현황 및 분석 대시보드</p>
+      <h1>Coffee Sales System</h1>
+      <p>Real-time Sales Dashboard</p>
     </header>
 
     <div class="main-grid">
       <!-- 왼쪽: 판매 입력 폼 -->
       <div class="card">
-        <h2>📝 새로운 판매 기록</h2>
+        <h2>New Sales Record</h2>
         <div id="addSaleMessage"></div>
         <form id="addSaleForm">
           <div class="form-group">
-            <label for="buyerName">구매자 이름</label>
-            <input type="text" id="buyerName" placeholder="예: 김철수" required>
+            <label for="buyerName">Buyer Name</label>
+            <input type="text" id="buyerName" placeholder="e.g. John Doe" required>
           </div>
 
           <div class="form-group">
-            <label for="product">상품</label>
+            <label for="product">Product</label>
             <select id="product" required>
-              <option value="">선택하세요</option>
-              <option value="아메리카노">아메리카노 (3,500원)</option>
-              <option value="아이스 아메리카노">아이스 아메리카노 (4,000원)</option>
-              <option value="카페라떼">카페라떼 (4,500원)</option>
-              <option value="카푸치노">카푸치노 (4,500원)</option>
-              <option value="아이스 라떼">아이스 라떼 (5,000원)</option>
-              <option value="헤이즐넛라떼">헤이즐넛라떼 (5,000원)</option>
+              <option value="">Select Product</option>
+              <option value="Americano">Americano (3,500 KRW)</option>
+              <option value="Iced Americano">Iced Americano (4,000 KRW)</option>
+              <option value="Cafe Latte">Cafe Latte (4,500 KRW)</option>
+              <option value="Cappuccino">Cappuccino (4,500 KRW)</option>
+              <option value="Iced Latte">Iced Latte (5,000 KRW)</option>
+              <option value="Hazelnut Latte">Hazelnut Latte (5,000 KRW)</option>
             </select>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="quantity">수량</label>
+              <label for="quantity">Quantity</label>
               <input type="number" id="quantity" value="1" min="1" required>
             </div>
             <div class="form-group">
-              <label for="pricePerUnit">단가</label>
+              <label for="pricePerUnit">Unit Price</label>
               <input type="number" id="pricePerUnit" value="3500" min="0" required>
             </div>
           </div>
 
-          <button type="submit">판매 기록 저장</button>
+          <button type="submit">Save Record</button>
         </form>
       </div>
 
       <!-- 오른쪽: 통계 -->
       <div class="card">
-        <h2>📊 매출 통계</h2>
+        <h2>Sales Statistics</h2>
         <div class="stats-grid">
           <div class="stat-box">
-            <div class="stat-label">총 판매건수</div>
+            <div class="stat-label">Total Sales</div>
             <div class="stat-value" id="totalSales">-</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">총 매출액</div>
+            <div class="stat-label">Total Revenue</div>
             <div class="stat-value" id="totalRevenue">-</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">평균 단가</div>
+            <div class="stat-label">Average Sale</div>
             <div class="stat-value" id="avgSale">-</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">최고 판매액</div>
+            <div class="stat-label">Max Sale</div>
             <div class="stat-value" id="maxSale">-</div>
           </div>
           <div class="stat-box">
-            <div class="stat-label">최저 판매액</div>
+            <div class="stat-label">Min Sale</div>
             <div class="stat-value" id="minSale">-</div>
           </div>
         </div>
@@ -363,21 +383,21 @@
           <canvas id="productChart"></canvas>
         </div>
 
-        <button onclick="loadAnalytics()" style="margin-bottom: 0;">📈 분석 새로고침</button>
+        <button onclick="loadAnalytics()" style="margin-bottom: 0;">Refresh Analytics</button>
       </div>
     </div>
 
     <!-- 아래: 데이터 목록 -->
     <div class="card full-width">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="margin: 0; border: none; padding: 0;">📋 판매 기록</h2>
-        <button onclick="loadSales()" style="width: auto; padding: 8px 16px; font-size: 12px;">🔄 새로고침</button>
+        <h2 style="margin: 0; border: none; padding: 0;">Sales Records</h2>
+        <button onclick="loadSales()" style="width: auto; padding: 8px 16px; font-size: 12px;">Refresh</button>
       </div>
 
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('sales')">최근 거래</button>
-        <button class="tab-btn" onclick="switchTab('products')">제품별 통계</button>
-        <button class="tab-btn" onclick="switchTab('customers')">고객별 현황</button>
+        <button class="tab-btn active" onclick="switchTab('sales')">Recent Transactions</button>
+        <button class="tab-btn" onclick="switchTab('products')">Product Stats</button>
+        <button class="tab-btn" onclick="switchTab('customers')">Customer Stats</button>
       </div>
 
       <!-- 최근 거래 탭 -->
@@ -386,16 +406,16 @@
           <table>
             <thead>
               <tr>
-                <th>시간</th>
-                <th>구매자</th>
-                <th>상품</th>
-                <th>수량</th>
-                <th>단가</th>
-                <th>합계</th>
+                <th>Time</th>
+                <th>Buyer</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
               </tr>
             </thead>
             <tbody id="salesTableBody">
-              <tr><td colspan="6" class="loading">데이터를 불러오는 중...</td></tr>
+              <tr><td colspan="6" class="loading">Loading...</td></tr>
             </tbody>
           </table>
           <div class="pagination" id="pagination"></div>
@@ -408,16 +428,16 @@
           <table>
             <thead>
               <tr>
-                <th>상품명</th>
-                <th>판매건수</th>
-                <th>총 수량</th>
-                <th>총 매출</th>
-                <th>평균 가격</th>
-                <th>고객 수</th>
+                <th>Product</th>
+                <th>Sales</th>
+                <th>Qty</th>
+                <th>Revenue</th>
+                <th>Avg Price</th>
+                <th>Customers</th>
               </tr>
             </thead>
             <tbody id="productsTableBody">
-              <tr><td colspan="6" class="loading">데이터를 불러오는 중...</td></tr>
+              <tr><td colspan="6" class="loading">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -429,15 +449,15 @@
           <table>
             <thead>
               <tr>
-                <th>고객명</th>
-                <th>구매횟수</th>
-                <th>총 구매량</th>
-                <th>총 지출</th>
-                <th>평균 지출</th>
+                <th>Customer</th>
+                <th>Purchases</th>
+                <th>Qty</th>
+                <th>Total Spent</th>
+                <th>Avg Spent</th>
               </tr>
             </thead>
             <tbody id="customersTableBody">
-              <tr><td colspan="5" class="loading">데이터를 불러오는 중...</td></tr>
+              <tr><td colspan="5" class="loading">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -471,7 +491,7 @@
         const result = await response.json();
 
         if (!result.success) {
-          showError('데이터 로드 실패');
+          showError('Failed to load data');
           return;
         }
 
@@ -479,7 +499,7 @@
         tbody.innerHTML = '';
 
         if (result.data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" class="loading">판매 기록이 없습니다</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" class="loading">No sales records</td></tr>';
           return;
         }
 
@@ -509,11 +529,11 @@
         renderPagination(totalPages, page);
       } catch (error) {
         console.error('Error:', error);
-        showError('데이터를 불러올 수 없습니다');
+        showError('Failed to load data');
       }
     }
 
-    // 페이지 네이션 렌더링
+    // Pagination rendering
     function renderPagination(totalPages, currentPage) {
       const pagination = document.getElementById('pagination');
       pagination.innerHTML = '';
@@ -540,14 +560,14 @@
       }
     }
 
-    // 분석 데이터 로드
+    // Load analytics data
     async function loadAnalytics() {
       try {
         const response = await fetch('/api/analytics');
         const result = await response.json();
 
         if (!result.success) {
-          showError('분석 데이터 로드 실패');
+          showError('Failed to load analytics');
           return;
         }
 
@@ -564,11 +584,11 @@
         updateProductChart(products);
       } catch (error) {
         console.error('Error:', error);
-        showError('분석 데이터를 불러올 수 없습니다');
+        showError('Failed to load analytics data');
       }
     }
 
-    // 제품별 차트 업데이트
+    // Update product chart
     function updateProductChart(products) {
       const ctx = document.getElementById('productChart').getContext('2d');
       const labels = products.map(p => p.product);
@@ -670,7 +690,7 @@
       const pricePerUnit = parseInt(document.getElementById('pricePerUnit').value);
 
       if (!buyerName || !product || !quantity || !pricePerUnit) {
-        showError('모든 필드를 입력해주세요');
+        showError('Please fill in all fields');
         return;
       }
 
@@ -689,17 +709,17 @@
         const result = await response.json();
 
         if (!result.success) {
-          showError(result.error || '저장 실패');
+          showError(result.error || 'Save failed');
           return;
         }
 
-        showSuccess('판매 기록이 저장되었습니다 ✓');
+        showSuccess('Record saved successfully');
         document.getElementById('addSaleForm').reset();
         loadSales();
         loadAnalytics();
       } catch (error) {
         console.error('Error:', error);
-        showError('저장 중 오류가 발생했습니다');
+        showError('Error saving record');
       }
     });
 
@@ -716,11 +736,11 @@
       setTimeout(() => msg.innerHTML = '', 3000);
     }
 
-    // 초기 로드
+    // Initial load
     document.addEventListener('DOMContentLoaded', () => {
       loadSales();
       loadAnalytics();
-      setInterval(loadAnalytics, 30000); // 30초마다 분석 데이터 새로고침
+      setInterval(loadAnalytics, 30000); // Refresh analytics every 30 seconds
     });
   </script>
 </body>
