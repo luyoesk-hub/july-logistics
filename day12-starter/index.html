@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>커피 자판기 매출 시스템</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 32px;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h2 {
+      font-size: 20px;
+      color: #333;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      color: #555;
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-box {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-bottom: 30px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      background: #f5f5f5;
+      color: #333;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #ddd;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+      background: #f9f9f9;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-product {
+      background: #e8eef7;
+      color: #667eea;
+    }
+
+    .loading {
+      text-align: center;
+      color: #999;
+      padding: 20px;
+    }
+
+    .error {
+      background: #fee;
+      color: #c33;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    .success {
+      background: #efe;
+      color: #3c3;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: #999;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      transition: all 0.3s;
+      margin-bottom: -2px;
+    }
+
+    .tab-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 20px;
+    }
+
+    .pagination button {
+      width: auto;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    .pagination button.active {
+      background: #333;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>☕ 커피 자판기 매출 시스템</h1>
+      <p>실시간 판매 현황 및 분석 대시보드</p>
+    </header>
+
+    <div class="main-grid">
+      <!-- 왼쪽: 판매 입력 폼 -->
+      <div class="card">
+        <h2>📝 새로운 판매 기록</h2>
+        <div id="addSaleMessage"></div>
+        <form id="addSaleForm">
+          <div class="form-group">
+            <label for="buyerName">구매자 이름</label>
+            <input type="text" id="buyerName" placeholder="예: 김철수" required>
+          </div>
+
+          <div class="form-group">
+            <label for="product">상품</label>
+            <select id="product" required>
+              <option value="">선택하세요</option>
+              <option value="아메리카노">아메리카노 (3,500원)</option>
+              <option value="아이스 아메리카노">아이스 아메리카노 (4,000원)</option>
+              <option value="카페라떼">카페라떼 (4,500원)</option>
+              <option value="카푸치노">카푸치노 (4,500원)</option>
+              <option value="아이스 라떼">아이스 라떼 (5,000원)</option>
+              <option value="헤이즐넛라떼">헤이즐넛라떼 (5,000원)</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="quantity">수량</label>
+              <input type="number" id="quantity" value="1" min="1" required>
+            </div>
+            <div class="form-group">
+              <label for="pricePerUnit">단가</label>
+              <input type="number" id="pricePerUnit" value="3500" min="0" required>
+            </div>
+          </div>
+
+          <button type="submit">판매 기록 저장</button>
+        </form>
+      </div>
+
+      <!-- 오른쪽: 통계 -->
+      <div class="card">
+        <h2>📊 매출 통계</h2>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">총 판매건수</div>
+            <div class="stat-value" id="totalSales">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">총 매출액</div>
+            <div class="stat-value" id="totalRevenue">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">평균 단가</div>
+            <div class="stat-value" id="avgSale">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">최고 판매액</div>
+            <div class="stat-value" id="maxSale">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">최저 판매액</div>
+            <div class="stat-value" id="minSale">-</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <canvas id="productChart"></canvas>
+        </div>
+
+        <button onclick="loadAnalytics()" style="margin-bottom: 0;">📈 분석 새로고침</button>
+      </div>
+    </div>
+
+    <!-- 아래: 데이터 목록 -->
+    <div class="card full-width">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; border: none; padding: 0;">📋 판매 기록</h2>
+        <button onclick="loadSales()" style="width: auto; padding: 8px 16px; font-size: 12px;">🔄 새로고침</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('sales')">최근 거래</button>
+        <button class="tab-btn" onclick="switchTab('products')">제품별 통계</button>
+        <button class="tab-btn" onclick="switchTab('customers')">고객별 현황</button>
+      </div>
+
+      <!-- 최근 거래 탭 -->
+      <div id="sales" class="tab-content active">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>시간</th>
+                <th>구매자</th>
+                <th>상품</th>
+                <th>수량</th>
+                <th>단가</th>
+                <th>합계</th>
+              </tr>
+            </thead>
+            <tbody id="salesTableBody">
+              <tr><td colspan="6" class="loading">데이터를 불러오는 중...</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+
+      <!-- 제품별 통계 탭 -->
+      <div id="products" class="tab-content">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>상품명</th>
+                <th>판매건수</th>
+                <th>총 수량</th>
+                <th>총 매출</th>
+                <th>평균 가격</th>
+                <th>고객 수</th>
+              </tr>
+            </thead>
+            <tbody id="productsTableBody">
+              <tr><td colspan="6" class="loading">데이터를 불러오는 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 고객별 현황 탭 -->
+      <div id="customers" class="tab-content">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>고객명</th>
+                <th>구매횟수</th>
+                <th>총 구매량</th>
+                <th>총 지출</th>
+                <th>평균 지출</th>
+              </tr>
+            </thead>
+            <tbody id="customersTableBody">
+              <tr><td colspan="5" class="loading">데이터를 불러오는 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.pathname.includes('/index.html') ? '/' : '';
+    let currentPage = 1;
+    const pageSize = 20;
+    let productChart = null;
+
+    // 탭 전환
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tabName === 'products') loadProductsTab();
+      if (tabName === 'customers') loadCustomersTab();
+    }
+
+    // 판매 데이터 불러오기
+    async function loadSales(page = 1) {
+      currentPage = page;
+      try {
+        const offset = (page - 1) * pageSize;
+        const response = await fetch(`/api/sales?limit=${pageSize}&offset=${offset}`);
+        const result = await response.json();
+
+        if (!result.success) {
+          showError('데이터 로드 실패');
+          return;
+        }
+
+        const tbody = document.getElementById('salesTableBody');
+        tbody.innerHTML = '';
+
+        if (result.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="loading">판매 기록이 없습니다</td></tr>';
+          return;
+        }
+
+        result.data.forEach(sale => {
+          const date = new Date(sale.purchased_at);
+          const timeStr = date.toLocaleString('ko-KR', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${timeStr}</td>
+              <td>${sale.buyer_name}</td>
+              <td><span class="badge badge-product">${sale.product}</span></td>
+              <td>${sale.quantity}개</td>
+              <td>₩${sale.price_per_unit.toLocaleString()}</td>
+              <td><strong>₩${sale.total_price.toLocaleString()}</strong></td>
+            </tr>
+          `;
+        });
+
+        // 페이지 네이션
+        const totalPages = Math.ceil(result.total / pageSize);
+        renderPagination(totalPages, page);
+      } catch (error) {
+        console.error('Error:', error);
+        showError('데이터를 불러올 수 없습니다');
+      }
+    }
+
+    // 페이지 네이션 렌더링
+    function renderPagination(totalPages, currentPage) {
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+
+      if (totalPages <= 1) return;
+
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, currentPage + 2);
+
+      if (startPage > 1) {
+        pagination.innerHTML += `<button onclick="loadSales(1)">«</button>`;
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = i === currentPage ? 'active' : '';
+        btn.onclick = () => loadSales(i);
+        pagination.appendChild(btn);
+      }
+
+      if (endPage < totalPages) {
+        pagination.innerHTML += `<button onclick="loadSales(${totalPages})">»</button>`;
+      }
+    }
+
+    // 분석 데이터 로드
+    async function loadAnalytics() {
+      try {
+        const response = await fetch('/api/analytics');
+        const result = await response.json();
+
+        if (!result.success) {
+          showError('분석 데이터 로드 실패');
+          return;
+        }
+
+        const { summary, products } = result;
+
+        // 통계 업데이트
+        document.getElementById('totalSales').textContent = summary.total_sales.toLocaleString();
+        document.getElementById('totalRevenue').textContent = '₩' + summary.total_revenue.toLocaleString();
+        document.getElementById('avgSale').textContent = '₩' + summary.avg_sale.toLocaleString();
+        document.getElementById('maxSale').textContent = '₩' + summary.max_sale.toLocaleString();
+        document.getElementById('minSale').textContent = '₩' + summary.min_sale.toLocaleString();
+
+        // 제품별 차트
+        updateProductChart(products);
+      } catch (error) {
+        console.error('Error:', error);
+        showError('분석 데이터를 불러올 수 없습니다');
+      }
+    }
+
+    // 제품별 차트 업데이트
+    function updateProductChart(products) {
+      const ctx = document.getElementById('productChart').getContext('2d');
+      const labels = products.map(p => p.product);
+      const data = products.map(p => p.total_revenue);
+
+      if (productChart) {
+        productChart.destroy();
+      }
+
+      productChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: [
+              '#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b',
+              '#fa709a', '#fee140', '#30b0fe', '#ec4899', '#f97316'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { font: { size: 12 }, padding: 15 }
+            }
+          }
+        }
+      });
+    }
+
+    // 제품별 통계 탭
+    async function loadProductsTab() {
+      try {
+        const response = await fetch('/api/analytics');
+        const result = await response.json();
+
+        if (!result.success) return;
+
+        const tbody = document.getElementById('productsTableBody');
+        tbody.innerHTML = '';
+
+        result.products.forEach(p => {
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${p.product}</strong></td>
+              <td>${p.sales_count}</td>
+              <td>${p.total_quantity}</td>
+              <td>₩${p.total_revenue.toLocaleString()}</td>
+              <td>₩${p.avg_price.toLocaleString()}</td>
+              <td>${p.unique_buyers}</td>
+            </tr>
+          `;
+        });
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    // 고객별 현황 탭
+    async function loadCustomersTab() {
+      try {
+        const response = await fetch('/api/analytics');
+        const result = await response.json();
+
+        if (!result.success) return;
+
+        const tbody = document.getElementById('customersTableBody');
+        tbody.innerHTML = '';
+
+        result.customers.forEach(c => {
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${c.buyer_name}</strong></td>
+              <td>${c.purchase_count}</td>
+              <td>${c.total_quantity}</td>
+              <td>₩${c.total_spent.toLocaleString()}</td>
+              <td>₩${c.avg_spent.toLocaleString()}</td>
+            </tr>
+          `;
+        });
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    // 판매 기록 추가
+    document.getElementById('addSaleForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const buyerName = document.getElementById('buyerName').value.trim();
+      const product = document.getElementById('product').value;
+      const quantity = parseInt(document.getElementById('quantity').value);
+      const pricePerUnit = parseInt(document.getElementById('pricePerUnit').value);
+
+      if (!buyerName || !product || !quantity || !pricePerUnit) {
+        showError('모든 필드를 입력해주세요');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/sales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            buyer_name: buyerName,
+            product,
+            quantity,
+            price_per_unit: pricePerUnit
+          })
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          showError(result.error || '저장 실패');
+          return;
+        }
+
+        showSuccess('판매 기록이 저장되었습니다 ✓');
+        document.getElementById('addSaleForm').reset();
+        loadSales();
+        loadAnalytics();
+      } catch (error) {
+        console.error('Error:', error);
+        showError('저장 중 오류가 발생했습니다');
+      }
+    });
+
+    // 메시지 표시
+    function showError(message) {
+      const msg = document.getElementById('addSaleMessage');
+      msg.innerHTML = `<div class="error">${message}</div>`;
+      setTimeout(() => msg.innerHTML = '', 5000);
+    }
+
+    function showSuccess(message) {
+      const msg = document.getElementById('addSaleMessage');
+      msg.innerHTML = `<div class="success">${message}</div>`;
+      setTimeout(() => msg.innerHTML = '', 3000);
+    }
+
+    // 초기 로드
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSales();
+      loadAnalytics();
+      setInterval(loadAnalytics, 30000); // 30초마다 분석 데이터 새로고침
+    });
+  </script>
+</body>
+</html>

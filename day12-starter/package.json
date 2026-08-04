@@ -1,0 +1,13 @@
+{
+  "name": "coffee-sales-system",
+  "version": "1.0.0",
+  "description": "무인 커피 자판기 매출 시스템",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build needed'",
+    "start": "node -e 'console.log(\"Visit http://localhost:3000 after running vercel dev\")'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.4"
+  }
+}

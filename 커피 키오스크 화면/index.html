@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>커피 키오스크 - 북유럽 감성</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff;
+    --surface: #fff;
+    --surface-soft: #f7f7f7;
+    --text: #111;
+    --muted: #4f4f4f;
+    --border: #111;
+    --accent: #111;
+    --accent-soft: rgba(0,0,0,.06);
+    --shadow: 0 20px 50px rgba(0,0,0,.08);
+    --glass: rgba(255,255,255,.92);
+    --success: #111;
+    --success-soft: rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+  }
+  #app {
+    width: min(100%, 980px);
+    padding: 42px 32px 140px;
+  }
+  header {
+    text-align: left;
+    margin-bottom: 48px;
+    position: relative;
+  }
+  header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url('https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+    opacity: .18;
+    filter: grayscale(1) brightness(1.12) contrast(1.1);
+    z-index: -1;
+    border-radius: 36px;
+  }
+  header > div {
+    position: relative;
+    max-width: 680px;
+    background: var(--surface);
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 36px;
+    padding: 44px 36px 32px;
+    box-shadow: 0 28px 60px rgba(0,0,0,.08);
+    backdrop-filter: blur(14px);
+  }
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(3rem, 4vw, 4.4rem);
+    margin: 0 0 14px;
+    letter-spacing: -.04em;
+    line-height: 1.04;
+    color: var(--text);
+  }
+  header p {
+    margin: 0;
+    max-width: 640px;
+    color: var(--muted);
+    font-size: .95rem;
+    line-height: 1.85;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .hero-note {
+    display: inline-flex;
+    margin-bottom: 20px;
+    padding: 12px 18px;
+    border-radius: 999px;
+    font-size: .82rem;
+    color: var(--text);
+    background: rgba(255,255,255,.95);
+    border: 1px solid rgba(0,0,0,.12);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  #menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    margin-bottom: 30px;
+  }
+  @media (max-width: 960px) { #menu { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 660px) { #menu { grid-template-columns: 1fr; } }
+  .menu-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 24px;
+    padding: 34px 28px;
+    cursor: pointer;
+    transition: transform .24s ease, box-shadow .24s ease, border-color .24s ease, background .24s ease;
+    box-shadow: 0 12px 32px rgba(0,0,0,.04);
+    min-height: 260px;
+  }
+  .menu-item:hover {
+    transform: translateY(-6px);
+    border-color: rgba(0,0,0,.35);
+    box-shadow: 0 26px 60px rgba(0,0,0,.12);
+    background: #fafafa;
+  }
+  .menu-item .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: #111;
+    color: #fff;
+    font-size: 26px;
+    margin-bottom: 20px;
+    box-shadow: none;
+  }
+  .menu-item .name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: -.03em;
+    color: var(--text);
+  }
+  .menu-item .price {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--muted);
+    font-size: .9rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+  .menu-item .description {
+    color: var(--muted);
+    font-size: .95rem;
+    line-height: 1.8;
+    letter-spacing: .02em;
+    min-height: 78px;
+    margin-bottom: 18px;
+  }
+  .menu-item .badge {
+    display: inline-flex;
+    margin-top: auto;
+    padding: 8px 14px;
+    background: #111;
+    color: #fff;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  #cart-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,.98);
+    border-top: 1px solid rgba(0,0,0,.1);
+    box-shadow: 0 -18px 48px rgba(0,0,0,.08);
+    display: flex;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+  }
+  #cart-inner {
+    width: min(100%, 1024px);
+    padding: 16px 22px 24px;
+  }
+  #cart-empty {
+    color: var(--muted);
+    font-size: .95rem;
+    text-align: center;
+    padding: 12px 0;
+  }
+  #cart-list {
+    display: none;
+    max-height: 180px;
+    overflow-y: auto;
+    margin: 0 0 14px;
+    padding: 0;
+    list-style: none;
+  }
+  #cart-list.show { display: block; }
+  .cart-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(166,143,122,.18);
+    font-size: .95rem;
+  }
+  .cart-row:last-child { border-bottom: none; }
+  .cart-row .cname { color: var(--text); }
+  .cart-row .cline { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stepper button {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    border: 1px solid rgba(213,201,190,.55);
+    background: #fff;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .stepper span { min-width: 20px; text-align: center; font-weight: 700; }
+  #cart-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: 700;
+    font-size: .98rem;
+    margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  #cart-total-row .amount {
+    font-size: 1.3rem;
+    color: var(--accent);
+  }
+  #submit-btn {
+    width: 100%;
+    padding: 16px;
+    border: 1px solid #111;
+    border-radius: 16px;
+    background: #111;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #submit-btn {
+    transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+  #submit-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(28,20,14,.14);
+    background: #3b3127;
+  }
+  #submit-btn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  #submit-btn:disabled { opacity: .55; cursor: wait; }
+  #submit-btn.disabled-empty { opacity: .4; cursor: not-allowed; }
+  #done-screen {
+    display: none;
+    text-align: center;
+    padding: 72px 24px;
+    background: var(--surface);
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+  }
+  #done-screen.show { display: block; }
+  #done-screen .num {
+    font-size: clamp(3rem, 6vw, 5rem);
+    font-weight: 800;
+    color: var(--success);
+    margin: 16px 0;
+  }
+  #done-screen .badge-ready {
+    display: inline-block;
+    background: var(--success-soft);
+    color: var(--success);
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-size: .9rem;
+    font-weight: 700;
+  }
+  #done-screen p.sub {
+    color: var(--muted);
+    font-size: .95rem;
+    margin-top: 18px;
+  }
+  #error-msg {
+    display: none;
+    text-align: center;
+    color: #9e3325;
+    font-size: .92rem;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div>
+      <div class="hero-note">danish design studio</div>
+      <h1>Order coffee with calm clarity</h1>
+      <p>Minimal interaction, clear hierarchy. Tap the items you want, then submit with confidence.</p>
+    </div>
+  </header>
+
+  <div id="menu"></div>
+
+  <div id="done-screen">
+    <div class="badge-ready">주문 접수 완료</div>
+    <div class="num" id="order-number">#0000</div>
+    <p>화면의 번호로 픽업대에서 음료를 받아가세요.</p>
+    <p class="sub">잠시 후 처음 화면으로 돌아갑니다.</p>
+  </div>
+
+</div>
+
+<div id="cart-bar">
+  <div id="cart-inner">
+    <p id="cart-empty">담긴 메뉴가 없습니다. 위에서 메뉴를 선택해주세요.</p>
+    <ul id="cart-list"></ul>
+    <div id="cart-total-row" style="display:none;">
+      <span>총 <span id="total-qty">0</span>잔</span>
+      <span class="amount"><span id="total-price">0</span>원</span>
+    </div>
+    <button id="submit-btn" class="disabled-empty" disabled>메뉴를 선택해주세요</button>
+    <p id="error-msg"></p>
+  </div>
+</div>
+
+<script>
+// 메뉴 목록: icon, name, price(원). 필요하면 이 배열만 수정하면 메뉴가 바뀐다.
+const MENU = [
+  { name: "블랙커피", price: 500, icon: "☕", description: "Clean espresso with a crisp finish." },
+  { name: "밀크커피", price: 600, icon: "🥛", description: "Balanced milk and coffee in a precise measure." },
+  { name: "율무차",   price: 600, icon: "🌾", description: "Simple grain tea with subtle warmth." },
+  { name: "코코아",   price: 700, icon: "🍫", description: "Rich cocoa, structured and refined." },
+  { name: "우유",     price: 600, icon: "🥛", description: "Pure milk served as a soft, quiet option." },
+  { name: "아이스티", price: 700, icon: "🧊", description: "Chilled tea with clean, fresh clarity." },
+  { name: "원두커피", price: 800, icon: "🫘", description: "Strong roast with a focused, dry finish." },
+];
+
+// 담긴 수량 상태: { "블랙커피": 2, ... }
+const cart = {};
+
+const menuEl = document.getElementById("menu");
+const cartListEl = document.getElementById("cart-list");
+const cartEmptyEl = document.getElementById("cart-empty");
+const totalRowEl = document.getElementById("cart-total-row");
+const totalQtyEl = document.getElementById("total-qty");
+const totalPriceEl = document.getElementById("total-price");
+const submitBtn = document.getElementById("submit-btn");
+const errorEl = document.getElementById("error-msg");
+const appEl = document.getElementById("app");
+const doneScreen = document.getElementById("done-screen");
+const orderNumberEl = document.getElementById("order-number");
+
+// 메뉴 카드 렌더링
+function renderMenu() {
+  menuEl.innerHTML = "";
+  MENU.forEach((item) => {
+    const qty = cart[item.name] || 0;
+    const card = document.createElement("div");
+    card.className = "menu-item" + (qty > 0 ? " has-qty" : "");
+    card.innerHTML = `
+      <span class="icon">${item.icon}</span>
+      <div class="name">${item.name}</div>
+      <div class="price">${item.price.toLocaleString()}원</div>
+      <div class="description">${item.description}</div>
+      ${qty > 0 ? `<span class="badge">${qty}개 담김</span>` : ""}
+    `;
+    card.addEventListener("click", () => {
+      cart[item.name] = (cart[item.name] || 0) + 1;
+      renderAll();
+    });
+    menuEl.appendChild(card);
+  });
+}
+
+// 장바구니(주문 티켓) 렌더링
+function renderCart() {
+  const names = Object.keys(cart).filter((n) => cart[n] > 0);
+
+  if (names.length === 0) {
+    cartEmptyEl.style.display = "block";
+    cartListEl.classList.remove("show");
+    totalRowEl.style.display = "none";
+    submitBtn.disabled = true;
+    submitBtn.classList.add("disabled-empty");
+    submitBtn.textContent = "메뉴를 선택해주세요";
+    return;
+  }
+
+  cartEmptyEl.style.display = "none";
+  cartListEl.classList.add("show");
+  cartListEl.innerHTML = "";
+
+  let totalQty = 0;
+  let totalPrice = 0;
+
+  names.forEach((name) => {
+    const item = MENU.find((m) => m.name === name);
+    const qty = cart[name];
+    totalQty += qty;
+    totalPrice += qty * item.price;
+
+    const li = document.createElement("li");
+    li.className = "cart-row";
+    li.innerHTML = `
+      <span class="cname">${name}</span>
+      <span class="cline">${(item.price * qty).toLocaleString()}원</span>
+      <span class="stepper">
+        <button type="button" data-action="dec" data-name="${name}">−</button>
+        <span>${qty}</span>
+        <button type="button" data-action="inc" data-name="${name}">+</button>
+      </span>
+    `;
+    cartListEl.appendChild(li);
+  });
+
+  totalRowEl.style.display = "flex";
+  totalQtyEl.textContent = totalQty;
+  totalPriceEl.textContent = totalPrice.toLocaleString();
+
+  submitBtn.disabled = false;
+  submitBtn.classList.remove("disabled-empty");
+  submitBtn.textContent = `${totalQty}잔 주문 접수하기`;
+
+  // +/- 버튼 이벤트 연결
+  cartListEl.querySelectorAll("button[data-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const name = btn.dataset.name;
+      if (btn.dataset.action === "inc") {
+        cart[name] += 1;
+      } else {
+        cart[name] -= 1;
+        if (cart[name] <= 0) delete cart[name];
+      }
+      renderAll();
+    });
+  });
+}
+
+function renderAll() {
+  renderMenu();
+  renderCart();
+}
+
+// 주문 접수
+submitBtn.addEventListener("click", async () => {
+  const items = Object.keys(cart)
+    .filter((n) => cart[n] > 0)
+    .map((n) => {
+      const item = MENU.find((m) => m.name === n);
+      return { name: n, price: item.price, qty: cart[n] };
+    });
+
+  if (items.length === 0) return;
+
+  submitBtn.disabled = true;
+  errorEl.style.display = "none";
+  const prevLabel = submitBtn.textContent;
+  submitBtn.textContent = "접수 중...";
+
+  try {
+    const res = await fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      // 화면 전환: 메뉴/장바구니 숨기고 완료 화면 표시
+      appEl.style.display = "none";
+      document.getElementById("cart-bar").style.display = "none";
+      orderNumberEl.textContent = "#" + String(data.order_id).padStart(4, "0");
+      doneScreen.classList.add("show");
+
+      // 5초 후 처음 화면(다음 손님)으로 자동 초기화
+      setTimeout(() => {
+        Object.keys(cart).forEach((k) => delete cart[k]);
+        doneScreen.classList.remove("show");
+        appEl.style.display = "block";
+        document.getElementById("cart-bar").style.display = "flex";
+        renderAll();
+      }, 5000);
+    } else {
+      errorEl.textContent = "접수 실패 - 다시 시도해주세요 (" + res.status + ")";
+      errorEl.style.display = "block";
+    }
+  } catch (err) {
+    errorEl.textContent = "네트워크 오류 - 다시 시도해주세요";
+    errorEl.style.display = "block";
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = prevLabel;
+    renderCart();
+  }
+});
+
+renderAll();
+</script>
+</body>
+</html>
