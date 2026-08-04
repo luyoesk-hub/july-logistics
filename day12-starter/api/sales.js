@@ -2,7 +2,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl || '', supabaseKey || '');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -13,6 +18,13 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
+  }
+
+  if (!supabaseUrl || !supabaseKey) {
+    return res.status(500).json({
+      success: false,
+      error: 'Missing Supabase environment variables. Please configure SUPABASE_URL and SUPABASE_ANON_KEY in Vercel settings.'
+    });
   }
 
   try {
