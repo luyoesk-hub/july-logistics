@@ -391,7 +391,10 @@
     <div class="card full-width">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 style="margin: 0; border: none; padding: 0;">Sales Records</h2>
-        <button onclick="loadSales()" style="width: auto; padding: 8px 16px; font-size: 12px;">Refresh</button>
+        <div style="display: flex; gap: 10px;">
+          <button onclick="loadSales()" style="width: auto; padding: 8px 16px; font-size: 12px;">Refresh</button>
+          <button onclick="downloadAsHTML()" style="width: auto; padding: 8px 16px; font-size: 12px;">Download HTML</button>
+        </div>
       </div>
 
       <div class="tabs">
@@ -734,6 +737,149 @@
       const msg = document.getElementById('addSaleMessage');
       msg.innerHTML = `<div class="success">${message}</div>`;
       setTimeout(() => msg.innerHTML = '', 3000);
+    }
+
+    // Download data as HTML
+    function downloadAsHTML() {
+      const activeTab = document.querySelector('.tab-content.active').id;
+      let htmlContent = '';
+      let filename = '';
+
+      if (activeTab === 'sales') {
+        htmlContent = generateSalesHTML();
+        filename = 'sales-records.html';
+      } else if (activeTab === 'products') {
+        htmlContent = generateProductsHTML();
+        filename = 'product-statistics.html';
+      } else if (activeTab === 'customers') {
+        htmlContent = generateCustomersHTML();
+        filename = 'customer-statistics.html';
+      }
+
+      const element = document.createElement('a');
+      element.setAttribute('href', 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent));
+      element.setAttribute('download', filename);
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    }
+
+    function generateSalesHTML() {
+      const rows = document.querySelectorAll('#salesTableBody tr');
+      let table = '<table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; width: 100%;">';
+      table += '<thead><tr><th>Time</th><th>Buyer</th><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>';
+      table += '<tbody>';
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length > 0) {
+          table += '<tr>';
+          cells.forEach(cell => {
+            table += '<td>' + cell.textContent + '</td>';
+          });
+          table += '</tr>';
+        }
+      });
+
+      table += '</tbody></table>';
+      return generateHTMLDocument('Sales Records', table);
+    }
+
+    function generateProductsHTML() {
+      const rows = document.querySelectorAll('#productsTableBody tr');
+      let table = '<table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; width: 100%;">';
+      table += '<thead><tr><th>Product</th><th>Sales</th><th>Qty</th><th>Revenue</th><th>Avg Price</th><th>Customers</th></tr></thead>';
+      table += '<tbody>';
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length > 0) {
+          table += '<tr>';
+          cells.forEach(cell => {
+            table += '<td>' + cell.textContent + '</td>';
+          });
+          table += '</tr>';
+        }
+      });
+
+      table += '</tbody></table>';
+      return generateHTMLDocument('Product Statistics', table);
+    }
+
+    function generateCustomersHTML() {
+      const rows = document.querySelectorAll('#customersTableBody tr');
+      let table = '<table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; width: 100%;">';
+      table += '<thead><tr><th>Customer</th><th>Purchases</th><th>Qty</th><th>Total Spent</th><th>Avg Spent</th></tr></thead>';
+      table += '<tbody>';
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length > 0) {
+          table += '<tr>';
+          cells.forEach(cell => {
+            table += '<td>' + cell.textContent + '</td>';
+          });
+          table += '</tr>';
+        }
+      });
+
+      table += '</tbody></table>';
+      return generateHTMLDocument('Customer Statistics', table);
+    }
+
+    function generateHTMLDocument(title, content) {
+      const timestamp = new Date().toLocaleString('ko-KR');
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <style>
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-weight: bold;
+      margin: 40px;
+      color: #000;
+      background: #fff;
+    }
+    h1 {
+      color: #000;
+      border-bottom: 2px solid #000;
+      padding-bottom: 10px;
+    }
+    .timestamp {
+      color: #666;
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+    table {
+      margin-top: 20px;
+    }
+    th {
+      background: #f5f5f0;
+      color: #000;
+      padding: 12px;
+      text-align: left;
+      font-weight: bold;
+      border: 1px solid #000;
+    }
+    td {
+      padding: 12px;
+      border: 1px solid #ddd;
+    }
+    tr:nth-child(even) {
+      background: #f5f5f0;
+    }
+  </style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <div class="timestamp">Generated: ${timestamp}</div>
+  ${content}
+</body>
+</html>`;
     }
 
     // Initial load
