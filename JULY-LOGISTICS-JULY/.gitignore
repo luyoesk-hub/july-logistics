@@ -1,0 +1,14 @@
+.DS_Store
+.env.local
+.vercel
+node_modules/
+*.xlsx
+*.zip
+*copy.csv
+status_review_summary.csv
+data_quality_report.xlsx
+shipments_cleaned_v3.xlsx
+shipments_status_review_v1.csv
+standardization_mapping.xlsx
+day13-starter.zip
+day14-kit.md
