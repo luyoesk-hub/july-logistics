@@ -160,6 +160,19 @@
   .action-btn { padding: 8px 12px; background: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; }
   .action-btn.edit { color: var(--brand); border-color: var(--brand); }
   .action-btn.delete { color: #c0392b; border-color: #eab6b0; }
+
+  .address-book { display: flex; gap: 8px; margin-top: 6px; }
+  .addr-dropdown { flex: 1; }
+  .addr-dropdown select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: #fff; }
+  .addr-btn { padding: 9px 12px; background: var(--ok-bg); border: 1px solid var(--ok-border); border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--text); font-weight: 600; }
+  .addr-btn:active { background: #d7e8e0; }
+
+  .shipping-options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0; }
+  .option-card { padding: 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; }
+  .option-card.selected { border-color: var(--brand); background: #f0f6ff; }
+  .option-card label { display: block; cursor: pointer; font-weight: 600; font-size: 13px; }
+  .option-card input[type="radio"] { cursor: pointer; }
+  .option-price { font-size: 11px; color: var(--muted); margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -194,6 +207,14 @@
         <div class="field">
           <label for="senderName">보내는 분 이름 <span class="req">필수</span></label>
           <input type="text" id="senderName" placeholder="예: 김민준" oninput="recalc()">
+          <div class="address-book">
+            <div class="addr-dropdown">
+              <select id="addressBookSelect" onchange="applyQuickAddress()">
+                <option value="">자주 쓰는 주소 선택...</option>
+              </select>
+            </div>
+            <button type="button" class="addr-btn" onclick="saveToAddressBook()">저장</button>
+          </div>
         </div>
         <div class="field">
           <label for="receiverName">받는 분 이름 <span class="req">필수</span></label>
@@ -204,6 +225,24 @@
           <div class="field-note">
             ※ 접수 지점은 규정 §7의 6대 필수 입력에는 없지만, §9 운송장 번호
             형식(앞 2자리 = 접수 지점 코드)에 필요해 이 화면에 추가했다.
+          </div>
+        </div>
+
+        <div class="field wide">
+          <label>배송 옵션 <span class="req">필수</span></label>
+          <div class="shipping-options">
+            <div class="option-card selected" id="opt-standard" onclick="selectShippingOption('standard', event)">
+              <label><input type="radio" name="shippingOption" value="standard" checked onchange="recalc()"> 스탠다드</label>
+              <div class="option-price">규정 도착일</div>
+            </div>
+            <div class="option-card" id="opt-express" onclick="selectShippingOption('express', event)">
+              <label><input type="radio" name="shippingOption" value="express" onchange="recalc()"> 익스프레스</label>
+              <div class="option-price">+1일 빠름, +20%</div>
+            </div>
+            <div class="option-card" id="opt-overnight" onclick="selectShippingOption('overnight', event)">
+              <label><input type="radio" name="shippingOption" value="overnight" onchange="recalc()"> 나이트</label>
+              <div class="option-price">다음날, +50%</div>
+            </div>
           </div>
         </div>
 
@@ -278,7 +317,7 @@
         <thead>
           <tr>
             <th>운송장</th><th>지점</th><th>보내는분</th><th>받는분</th><th>도착지역</th>
-            <th>권역</th><th>물품</th><th>요금무게</th><th>등급</th><th>요금</th><th>도착예정</th><th style="width:70px">작업</th>
+            <th>권역</th><th>물품</th><th>요금무게</th><th>등급</th><th>배송옵션</th><th>요금</th><th>도착예정</th><th style="width:70px">작업</th>
           </tr>
         </thead>
         <tbody id="listBody"><tr class="empty-row"><td colspan="12">아직 접수 내역이 없습니다</td></tr></tbody>
@@ -386,7 +425,11 @@
         </div>
         <div class="modal-row">
           <div><div class="modal-label">크기 등급</div><div class="modal-value" id="editGrade"></div></div>
-          <div><div class="modal-label">요금</div><div class="modal-value" id="editPrice"></div></div>
+          <div><div class="modal-label">배송 옵션</div><div class="modal-value" id="editShippingOption"></div></div>
+        </div>
+        <div class="modal-row">
+          <div><div class="modal-label">기본 요금</div><div class="modal-value" id="editBasePrice"></div></div>
+          <div><div class="modal-label">최종 요금</div><div class="modal-value" id="editPrice"></div></div>
         </div>
         <div class="modal-row full">
           <div><div class="modal-label">도착 예정일</div><div class="modal-value" id="editETA"></div></div>
@@ -401,6 +444,83 @@
 </div>
 
 <script>
+  // ============================================================
+  // 주소록 관리
+  // ============================================================
+  let addressBook = [];
+
+  function initAddressBook() {
+    const saved = localStorage.getItem('dudu_addressBook');
+    addressBook = saved ? JSON.parse(saved) : [];
+    updateAddressBookUI();
+  }
+
+  function updateAddressBookUI() {
+    const select = document.getElementById('addressBookSelect');
+    select.innerHTML = '<option value="">자주 쓰는 주소 선택...</option>';
+    addressBook.forEach((addr, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `${addr.senderName} → ${addr.receiverArea}`;
+      select.appendChild(opt);
+    });
+  }
+
+  function saveToAddressBook() {
+    const senderName = document.getElementById('senderName').value.trim();
+    const receiverArea = document.getElementById('receiverArea').value.trim();
+    if (!senderName || !receiverArea) {
+      alert('보내는 분 이름과 도착 지역을 입력하세요.');
+      return;
+    }
+    const exists = addressBook.findIndex(a => a.senderName === senderName && a.receiverArea === receiverArea);
+    if (exists >= 0) {
+      addressBook.splice(exists, 1);
+    }
+    addressBook.unshift({ senderName, receiverArea });
+    if (addressBook.length > 5) addressBook.pop();
+    localStorage.setItem('dudu_addressBook', JSON.stringify(addressBook));
+    updateAddressBookUI();
+    alert(`저장됐습니다: ${senderName} → ${receiverArea}`);
+  }
+
+  function applyQuickAddress() {
+    const select = document.getElementById('addressBookSelect');
+    const idx = parseInt(select.value);
+    if (isNaN(idx)) return;
+    const addr = addressBook[idx];
+    document.getElementById('senderName').value = addr.senderName;
+    document.getElementById('receiverArea').value = addr.receiverArea;
+    select.value = '';
+    recalc();
+  }
+
+  // ============================================================
+  // 배송 옵션 관리
+  // ============================================================
+  function selectShippingOption(option, event) {
+    event?.preventDefault?.();
+    document.querySelectorAll('.option-card').forEach(el => el.classList.remove('selected'));
+    document.getElementById(`opt-${option}`).classList.add('selected');
+    document.querySelector(`input[value="${option}"]`).checked = true;
+    recalc();
+  }
+
+  function getShippingOptionLabel(option) {
+    const labels = { standard: '스탠다드', express: '익스프레스', overnight: '나이트' };
+    return labels[option] || '스탠다드';
+  }
+
+  function getShippingOptionMultiplier(option) {
+    const multipliers = { standard: 1.0, express: 1.2, overnight: 1.5 };
+    return multipliers[option] || 1.0;
+  }
+
+  function getShippingOptionDayOffset(option) {
+    const offsets = { standard: 0, express: -1, overnight: -2 };
+    return offsets[option] || 0;
+  }
+
   // ============================================================
   // 탭 관리
   // ============================================================
@@ -666,8 +786,10 @@
 
     const region = determineRegion(area);
     const tier = RATE_TABLE.find(t => t.grade === gt.matched);
-    const price = tier.price[region];
-    const etaInfo = addBusinessDaysTrace(new Date(), ETA_BUSINESS_DAYS[region]);
+    const basePrice = tier.price[region];
+    const shippingOption = document.querySelector('input[name="shippingOption"]:checked').value;
+    const multiplier = getShippingOptionMultiplier(shippingOption);
+    const finalPrice = Math.round(basePrice * multiplier);
     const specialNote = (area === '진주' || area === '거제')
       ? '다리・도로로 연결된 일반 지역입니다(규정 §2 "주의" 조항, 도서산간이 아닙니다). -> '
       : '';
@@ -675,12 +797,28 @@
     html += step('5', '권역 판정 (규정 §2, §8-6)',
       `도착 지역 "${area}" -> ${specialNote}<b>${region}</b>`);
     html += step('6', '요금 조회 (규정 §3 요금표)',
-      `${gt.matched} 등급 x ${region} 권역 = <b>${formatWon(price)}</b>`);
+      `${gt.matched} 등급 x ${region} 권역 = <b>${formatWon(basePrice)}</b>`);
 
+    const shippingLabel = getShippingOptionLabel(shippingOption);
+    let shippingNote = '';
+    if (shippingOption === 'express') {
+      shippingNote = ` + 익스프레스 옵션 (+20%) = ${formatWon(basePrice)} × 1.2 = <b>${formatWon(finalPrice)}</b>`;
+    } else if (shippingOption === 'overnight') {
+      shippingNote = ` + 나이트 옵션 (+50%) = ${formatWon(basePrice)} × 1.5 = <b>${formatWon(finalPrice)}</b>`;
+    }
+    if (shippingNote) {
+      html += step('7', '배송 옵션 요금 (규정 추가)', shippingNote);
+    }
+
+    const dayOffset = getShippingOptionDayOffset(shippingOption);
+    const businessDaysNeeded = ETA_BUSINESS_DAYS[region] + dayOffset;
+    const etaInfo = addBusinessDaysTrace(new Date(), Math.max(0, businessDaysNeeded));
     const etaDetail = etaInfo.trace.map(t =>
       `${formatDateISO(t.date)}(${WEEKDAY_KO[t.dow]}) - ${t.isWeekend ? '주말이라 제외' : `영업일 ${t.countedAt}일째`}`
     ).join('<br>');
-    html += step('7', `도착 예정일 (규정 §6, §8-7 - ${region}은 접수 후 +${ETA_BUSINESS_DAYS[region]}영업일)`,
+    const stepNo = shippingNote ? '8' : '7';
+    const etaStepTitle = `도착 예정일 (규정 §6 - ${region} ${ETA_BUSINESS_DAYS[region]}영업일${shippingOption !== 'standard' ? `, ${shippingLabel}로 ${businessDaysNeeded}영업일` : ''})`;
+    html += step(stepNo, etaStepTitle,
       `${etaDetail}<br>도착 예정 -> <b>${formatDateISO(etaInfo.finalDate)}(${WEEKDAY_KO[etaInfo.finalDate.getDay()]})</b>`);
 
     document.getElementById('calcSteps').innerHTML = html;
@@ -796,7 +934,7 @@
       <tr>
         <td>${s.trackingNo}</td><td>${s.branchName}</td><td>${s.senderName}</td><td>${s.receiverName}</td>
         <td>${s.receiverArea}</td><td>${s.regionType}</td><td>${s.itemName}</td>
-        <td>${s.billedWeightKg}kg</td><td>${s.sizeGrade}</td><td>${formatWon(s.price)}</td><td>${s.etaDate}</td>
+        <td>${s.billedWeightKg}kg</td><td>${s.sizeGrade}</td><td>${getShippingOptionLabel(s.shippingOption)}</td><td>${formatWon(s.finalPrice)}</td><td>${s.etaDate}</td>
         <td style="text-align:center;">
           <button class="action-btn edit" onclick="openEditModal(${realIdx})">상세</button>
         </td>
@@ -824,7 +962,9 @@
     document.getElementById('editWeight').textContent = s.weightKg + 'kg';
     document.getElementById('editBilledWeight').textContent = s.billedWeightKg + 'kg';
     document.getElementById('editGrade').textContent = s.sizeGrade;
-    document.getElementById('editPrice').textContent = formatWon(s.price);
+    document.getElementById('editShippingOption').textContent = getShippingOptionLabel(s.shippingOption);
+    document.getElementById('editBasePrice').textContent = formatWon(s.basePrice);
+    document.getElementById('editPrice').textContent = formatWon(s.finalPrice);
     document.getElementById('editETA').textContent = s.etaDate;
     document.getElementById('editModal').classList.add('active');
   }
@@ -845,7 +985,7 @@
 
   function updateStats() {
     const total = savedShipments.length;
-    const totalPrice = savedShipments.reduce((sum, s) => sum + s.price, 0);
+    const totalPrice = savedShipments.reduce((sum, s) => sum + s.finalPrice, 0);
     const avgPrice = total > 0 ? Math.round(totalPrice / total) : 0;
 
     document.getElementById('statTotal').textContent = total;
@@ -860,7 +1000,7 @@
         byBranch[code] = { count: 0, total: 0, regions: {}, name: s.branchName };
       }
       byBranch[code].count++;
-      byBranch[code].total += s.price;
+      byBranch[code].total += s.finalPrice;
       byBranch[code].regions[s.regionType] = (byBranch[code].regions[s.regionType] || 0) + 1;
     });
 
@@ -884,7 +1024,7 @@
         byRegion[s.regionType] = { count: 0, total: 0, grades: {} };
       }
       byRegion[s.regionType].count++;
-      byRegion[s.regionType].total += s.price;
+      byRegion[s.regionType].total += s.finalPrice;
       byRegion[s.regionType].grades[s.sizeGrade] = (byRegion[s.regionType].grades[s.sizeGrade] || 0) + 1;
     });
 
@@ -908,7 +1048,7 @@
         byGrade[s.sizeGrade] = { count: 0, total: 0 };
       }
       byGrade[s.sizeGrade].count++;
-      byGrade[s.sizeGrade].total += s.price;
+      byGrade[s.sizeGrade].total += s.finalPrice;
     });
 
     const gradeRows = Object.entries(byGrade).map(([grade, data]) => {
@@ -932,6 +1072,9 @@
   function showReceipt(record) {
     const el = document.getElementById('receiptSection');
     el.style.display = 'block';
+    const priceDetail = record.shippingOption !== 'standard'
+      ? `${formatWon(record.basePrice)} (기본) + ${getShippingOptionLabel(record.shippingOption)} = ${formatWon(record.finalPrice)}`
+      : formatWon(record.finalPrice);
     el.innerHTML = `
       <div class="receipt-card">
         <div class="receipt-title">접수가 완료됐습니다</div>
@@ -939,7 +1082,8 @@
         <div class="receipt-line">접수 지점 ${record.branchName} / 보내는 분 ${record.senderName}</div>
         <div class="receipt-line">받는 분 ${record.receiverName} / 도착 지역 ${record.receiverArea}(${record.regionType})</div>
         <div class="receipt-line">물품 ${record.itemName} / 요금 무게 ${record.billedWeightKg}kg / 등급 ${record.sizeGrade}</div>
-        <div class="receipt-price">${formatWon(record.price)}</div>
+        <div class="receipt-line">배송옵션 ${getShippingOptionLabel(record.shippingOption)}</div>
+        <div class="receipt-price">${priceDetail}</div>
         <div class="receipt-line">도착 예정일 ${record.etaDate}</div>
       </div>`;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -959,6 +1103,7 @@
     const width = getNumeric('widthCm');
     const height = getNumeric('heightCm');
     const depth = getNumeric('depthCm');
+    const shippingOption = document.querySelector('input[name="shippingOption"]:checked').value;
 
     const volumeWeightKg = (width * height * depth) / 6000;
     const billedWeightKg = Math.max(weight, volumeWeightKg);
@@ -966,8 +1111,12 @@
     const grade = determineGrade(sumCm, billedWeightKg);
     const region = determineRegion(area);
     const tier = RATE_TABLE.find(t => t.grade === grade);
-    const price = tier.price[region];
-    const etaInfo = addBusinessDaysTrace(new Date(), ETA_BUSINESS_DAYS[region]);
+    const basePrice = tier.price[region];
+    const multiplier = getShippingOptionMultiplier(shippingOption);
+    const finalPrice = Math.round(basePrice * multiplier);
+    const dayOffset = getShippingOptionDayOffset(shippingOption);
+    const businessDaysNeeded = ETA_BUSINESS_DAYS[region] + dayOffset;
+    const etaInfo = addBusinessDaysTrace(new Date(), Math.max(0, businessDaysNeeded));
     const trackingNo = nextTrackingNo(branchCode);
 
     const record = {
@@ -975,20 +1124,12 @@
       receiverArea: area, regionType: region, itemName,
       weightKg: weight, widthCm: width, heightCm: height, depthCm: depth,
       billedWeightKg: Math.round(billedWeightKg * 10) / 10,
-      sizeGrade: grade, price,
+      sizeGrade: grade, basePrice, shippingOption, finalPrice,
       etaDate: formatDateISO(etaInfo.finalDate),
     };
 
     // ---- Supabase 연동 자리 (키를 넣지 않는다) ----
-    // const { data, error } = await supabaseClient.from('shipments').insert([{
-    //   tracking_no: record.trackingNo, sender_name: record.senderName,
-    //   receiver_name: record.receiverName, receiver_area: record.receiverArea,
-    //   region_type: record.regionType, item_name: record.itemName,
-    //   weight_kg: record.weightKg, width_cm: record.widthCm,
-    //   height_cm: record.heightCm, depth_cm: record.depthCm,
-    //   billed_weight_kg: record.billedWeightKg, size_grade: record.sizeGrade,
-    //   price: record.price, eta_date: record.etaDate,
-    // }]);
+    // const { data, error } = await supabaseClient.from('shipments').insert([{...record}]);
 
     savedShipments.push(record);
     renderList();
@@ -1006,6 +1147,7 @@
     recalc();
   }
 
+  initAddressBook();
   renderList();
   recalc();
 </script>
