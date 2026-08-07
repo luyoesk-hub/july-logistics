@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "dudu-reception",
   "public": true,
   "buildCommand": "",
   "outputDirectory": ".",
