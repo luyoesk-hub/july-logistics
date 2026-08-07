@@ -2,6 +2,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 module.exports = async function handler(req, res) {
+  console.log(JSON.stringify({ event: 'env-check', hasUrl: !!SUPABASE_URL, hasKey: !!SUPABASE_ANON_KEY }));
   const t0 = Date.now();
 
   if (req.method !== "POST") {

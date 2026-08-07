@@ -11,13 +11,34 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = path.join(__dirname, 'data', 'shipments.json');
 
 const app = express();
-const PORT = process.env.API_PORT || 3001;
+const PORT = process.env.PORT || process.env.API_PORT || 3001;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://dudu-reception.vercel.app';
+
+// Production 환경 변수
+if (NODE_ENV === 'production') {
+  console.log('🔒 Production 모드');
+}
+
+// CORS 허용 도메인
+const CORS_ORIGINS = [
+  'http://localhost:8000',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  FRONTEND_URL,
+  ...(process.env.EXTRA_ORIGINS?.split(',') || [])
+];
 
 app.use(cors({
-  origin: ['http://localhost:8000', 'http://localhost:3000', 'https://dudu-reception.vercel.app'],
+  origin: CORS_ORIGINS,
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   credentials: true
 }));
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  next();
+});
 app.use(express.json());
 
 // 헬스 체크
