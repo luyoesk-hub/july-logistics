@@ -1,0 +1,27 @@
+{
+  "shipments": [
+    {
+      "id": 1,
+      "trackingNo": "0100000001",
+      "branchName": "서울지점",
+      "senderName": "김철수",
+      "receiverName": "이순신",
+      "receiverArea": "서울",
+      "regionType": "general",
+      "itemName": "테스트 물품",
+      "weightKg": 2.5,
+      "widthCm": 20,
+      "heightCm": 15,
+      "depthCm": 10,
+      "billedWeightKg": 2.5,
+      "sizeGrade": "small",
+      "basePrice": 4000,
+      "shippingOption": "standard",
+      "finalPrice": 4000,
+      "etaDate": "2026-08-10",
+      "createdAt": "2026-08-07T06:42:28.520Z",
+      "status": "completed"
+    }
+  ],
+  "lastId": 1
+}

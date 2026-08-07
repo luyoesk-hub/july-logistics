@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "july-logistics",
   "public": true,
   "buildCommand": "",
   "outputDirectory": ".",
