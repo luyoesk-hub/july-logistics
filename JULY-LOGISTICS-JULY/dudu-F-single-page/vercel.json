@@ -3,10 +3,24 @@
   "public": true,
   "buildCommand": "",
   "outputDirectory": ".",
+  "env": {
+    "REACT_APP_API_URL": "@api-url"
+  },
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=3600"
+        }
+      ]
     }
   ]
 }
