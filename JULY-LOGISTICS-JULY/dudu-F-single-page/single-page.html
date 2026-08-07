@@ -82,9 +82,41 @@
     .reset-btn { background: var(--card); color: var(--text); border-color: var(--border); }
   }
 
+  /* Phase 3-A: 반응형 중단점 */
+  @media (max-width: 1120px) {
+    .shipping-options { grid-template-columns: repeat(3, 1fr); }
+  }
+
   @media (max-width: 900px) {
     .layout { grid-template-columns: 1fr; }
     .form-panel { border-right: none; border-bottom: 1px solid var(--border); }
+    .shipping-options { grid-template-columns: repeat(2, 1fr); }
+    .step-label { font-size: 10px; }
+    .topbar .brand { font-size: 20px; }
+  }
+
+  @media (max-width: 768px) {
+    .shipping-options { grid-template-columns: 1fr; }
+    .field-grid { grid-template-columns: 1fr; }
+    .row3 { grid-template-columns: 1fr; }
+    table { font-size: 12px; }
+    th, td { padding: 6px 8px !important; }
+    .option-card { padding: 10px; }
+    .topbar { padding: 12px 16px; }
+    .form-panel, .calc-panel { padding: 16px; }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 12px 8px 60px; }
+    .topbar .brand { font-size: 18px; }
+    .topbar .sub { font-size: 11px; }
+    .submit-btn, .reset-btn { padding: 12px; font-size: 14px; }
+    .shipping-options { gap: 6px; }
+    .option-card { padding: 8px; font-size: 12px; }
+    .step { flex: 0; gap: 2px; }
+    .step-number { width: 28px; height: 28px; font-size: 11px; }
+    .step-label { font-size: 9px; }
+    .step-divider { margin: 0 -6px; }
   }
 
   h2 { font-size: 16px; margin: 0 0 14px; }
@@ -204,11 +236,28 @@
   .addr-btn:active { background: #d7e8e0; }
 
   .shipping-options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0; }
-  .option-card { padding: 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; }
-  .option-card.selected { border-color: var(--brand); background: #f0f6ff; }
+  .option-card { padding: 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s ease; background: var(--card); }
+  .option-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(20, 80, 140, 0.1); }
+  .option-card.selected { border: 2px solid var(--brand); background: #e8f1ff; box-shadow: 0 2px 8px rgba(20, 80, 140, 0.15); }
   .option-card label { display: block; cursor: pointer; font-weight: 600; font-size: 13px; }
   .option-card input[type="radio"] { cursor: pointer; }
   .option-price { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Phase 3-B: Step Indicator */
+  .progress-bar { display: flex; align-items: center; margin-bottom: 20px; gap: 0; }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .step-number { width: 32px; height: 32px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: var(--text); }
+  .step.active .step-number { background: var(--brand); color: white; }
+  .step-divider { flex: 1; height: 2px; background: #e0e0e0; margin: 0 -8px; }
+  .step-label { font-size: 11px; color: var(--muted); text-align: center; max-width: 60px; }
+
+  /* Phase 3-B: 도움말 아이콘 */
+  .help-icon { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; background: #ddd; color: #666; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; cursor: help; margin-left: 4px; transition: all 0.2s; }
+  .help-icon:hover { background: var(--brand); color: white; }
+
+  /* Phase 3-B: 아이콘 라벨 */
+  .field label { display: flex; align-items: center; gap: 4px; }
+  .icon { font-size: 16px; }
 
   .addr-manage-btn { padding: 9px 12px; background: #f0f6ff; border: 1px solid var(--brand); border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--brand); font-weight: 600; margin-top: 6px; width: 100%; }
   .addr-manage-btn:active { background: #e0ecff; }
@@ -252,23 +301,43 @@
   </div>
 
   <div class="tab-content active" id="tab-reception">
+  <!-- Phase 3-B: Step Indicator -->
+  <div style="background: white; border: 1px solid var(--border); border-bottom: none; border-radius: 14px 14px 0 0; padding: 20px; margin-bottom: 0;">
+    <div class="progress-bar">
+      <div class="step active">
+        <div class="step-number">1</div>
+        <div class="step-label">기본정보</div>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-label">계산</div>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-label">완료</div>
+      </div>
+    </div>
+  </div>
+
   <div class="layout">
     <section class="form-panel">
       <h2>접수 정보 입력</h2>
       <div class="field-grid">
         <div class="field">
-          <label for="branch">접수 지점 <span class="req">필수</span></label>
+          <label for="branch"><span class="icon">🏢</span>접수 지점 <span class="req">필수</span></label>
           <input type="text" id="branch" oninput="recalc()" placeholder="서울지점" autocomplete="off">
           <p class="hint">등록된 지점: 서울지점, 용산지점, 대전지점, 진주지점, 거제지점, 울산지점. 목록에 없는 이름을 적으면 운송장 앞자리가 00으로 나갑니다.</p>
         </div>
         <div class="field">
-          <label for="receiverArea">도착 지역 <span class="req">필수</span></label>
+          <label for="receiverArea"><span class="icon">🌍</span>도착 지역 <span class="req">필수</span></label>
           <input type="text" id="receiverArea" oninput="recalc()" placeholder="서울" autocomplete="off">
           <p class="hint">제주는 제주 권역, 울릉도·백령도·흑산도·거문도·추자도는 도서산간, 나머지는 전부 일반입니다. 거제와 진주도 일반입니다.</p>
         </div>
 
         <div class="field">
-          <label for="senderName">보내는 분 이름 <span class="req">필수</span></label>
+          <label for="senderName"><span class="icon">👤</span>보내는 분 이름 <span class="req">필수</span></label>
           <input type="text" id="senderName" placeholder="예: 김민준" oninput="recalc()">
           <div class="address-book">
             <div class="addr-dropdown">
@@ -281,7 +350,7 @@
           <button type="button" class="addr-manage-btn" onclick="openAddressBookModal()">📋 주소록 관리</button>
         </div>
         <div class="field">
-          <label for="receiverName">받는 분 이름 <span class="req">필수</span></label>
+          <label for="receiverName"><span class="icon">👨‍👩‍👧</span>받는 분 이름 <span class="req">필수</span></label>
           <input type="text" id="receiverName" placeholder="예: 이서연" oninput="recalc()">
         </div>
 
@@ -293,7 +362,7 @@
         </div>
 
         <div class="field wide">
-          <label>배송 옵션 <span class="req">필수</span></label>
+          <label><span class="icon">🚚</span>배송 옵션 <span class="help-icon" title="각 옵션은 기본 요금에 추가 비용이 발생합니다">?</span><span class="req">필수</span></label>
           <div class="shipping-options">
             <div class="option-card selected" id="opt-standard" onclick="selectShippingOption('standard', event)">
               <label><input type="radio" name="shippingOption" value="standard" checked onchange="recalc()"> 스탠다드</label>
@@ -311,19 +380,19 @@
         </div>
 
         <div class="field wide">
-          <label for="itemName">물품명 <span class="req">필수</span></label>
+          <label for="itemName"><span class="icon">📦</span>물품명 <span class="req">필수</span></label>
           <input type="text" id="itemName" placeholder="예: 이불" oninput="recalc()">
           <div class="inline-warning" id="bannedWarning"></div>
         </div>
 
         <div class="field">
-          <label for="weightKg">실제 무게 (kg) <span class="req">필수</span></label>
+          <label for="weightKg"><span class="icon">⚖️</span>실제 무게 (kg) <span class="req">필수</span></label>
           <input type="number" id="weightKg" placeholder="예: 3.0" step="any" oninput="recalc()">
         </div>
         <div class="field"></div>
 
         <div class="field dims">
-          <label>가로 x 세로 x 높이 (cm) <span class="req">필수</span></label>
+          <label><span class="icon">📏</span>가로 x 세로 x 높이 (cm) <span class="req">필수</span></label>
           <div class="row3">
             <input type="number" id="widthCm" placeholder="가로" step="any" oninput="recalc()">
             <input type="number" id="heightCm" placeholder="세로" step="any" oninput="recalc()">
@@ -346,16 +415,33 @@
     </section>
 
     <section class="calc-panel">
-      <h2>계산 과정 (규정 그대로, 숫자를 대입해서 보여줍니다)</h2>
-      <div id="calcSteps">
-        <div class="calc-pending">무게・가로・세로・높이를 모두 입력하면 계산 과정이 여기 순서대로 표시됩니다.</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h2 style="margin: 0;">계산 과정</h2>
+        <button type="button" id="toggleCalcBtn" onclick="toggleCalcDetails()" style="padding: 6px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">상세보기 ▼</button>
       </div>
 
-      <h3>요금표 - 4등급 x 3권역 12종 전부 (규정 §3)</h3>
-      <table class="rate-table" id="rateTable">
-        <thead><tr><th>등급</th><th>기준(세변합 / 무게)</th><th>일반</th><th>제주</th><th>도서산간</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <!-- Phase 3-A: 간소화 모드 -->
+      <div id="calcSummary" style="display: block;">
+        <div style="background: var(--ok-bg); padding: 16px; border-radius: 8px; border: 1px solid var(--ok-border);">
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;"><span>크기등급:</span> <strong id="summaryGrade">-</strong></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;"><span>배송옵션:</span> <strong id="summaryOption">-</strong></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;"><span>예상 요금:</span> <strong id="summaryPrice">-</strong></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;"><span>도착예정:</span> <strong id="summaryEta">-</strong></div>
+        </div>
+      </div>
+
+      <!-- Phase 3-A: 상세 모드 -->
+      <div id="calcDetails" style="display: none;">
+        <div id="calcSteps">
+          <div class="calc-pending">무게・가로・세로・높이를 모두 입력하면 계산 과정이 여기 순서대로 표시됩니다.</div>
+        </div>
+
+        <h3>요금표 - 4등급 x 3권역 12종 전부 (규정 §3)</h3>
+        <table class="rate-table" id="rateTable">
+          <thead><tr><th>등급</th><th>기준(세변합 / 무게)</th><th>일반</th><th>제주</th><th>도서산간</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
   </div>
 
@@ -679,6 +765,24 @@
     });
   }
 
+  // Phase 3-A: 계산 과정 간소화/상세 토글
+  let calcDetailsExpanded = false;
+  function toggleCalcDetails() {
+    calcDetailsExpanded = !calcDetailsExpanded;
+    const summary = document.getElementById('calcSummary');
+    const details = document.getElementById('calcDetails');
+    const btn = document.getElementById('toggleCalcBtn');
+    if (calcDetailsExpanded) {
+      summary.style.display = 'none';
+      details.style.display = 'block';
+      btn.textContent = '간소화 ▲';
+    } else {
+      summary.style.display = 'block';
+      details.style.display = 'none';
+      btn.textContent = '상세보기 ▼';
+    }
+  }
+
   // ============================================================
   // 탭 관리
   // ============================================================
@@ -888,6 +992,11 @@
     document.getElementById('calcSteps').innerHTML =
       '<div class="calc-pending">무게・가로・세로・높이를 모두 입력하면 계산 과정이 여기 순서대로 표시됩니다.</div>';
     renderRateTable(null, null);
+    // Phase 3-A: 간소화 모드도 초기화
+    document.getElementById('summaryGrade').textContent = '-';
+    document.getElementById('summaryOption').textContent = '-';
+    document.getElementById('summaryPrice').textContent = '-';
+    document.getElementById('summaryEta').textContent = '-';
   }
 
   function renderCalcBannedStop(itemName, hit) {
@@ -981,6 +1090,12 @@
 
     document.getElementById('calcSteps').innerHTML = html;
     renderRateTable(gt.matched, region);
+
+    // Phase 3-A: 간소화 모드도 업데이트
+    document.getElementById('summaryGrade').textContent = gt.matched || '-';
+    document.getElementById('summaryOption').textContent = getShippingOptionLabel(shippingOption);
+    document.getElementById('summaryPrice').textContent = formatWon(finalPrice);
+    document.getElementById('summaryEta').textContent = etaInfo.finalDate ? formatDateISO(etaInfo.finalDate) : '-';
   }
 
   // ============================================================
