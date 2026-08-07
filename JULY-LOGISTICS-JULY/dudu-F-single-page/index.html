@@ -286,6 +286,9 @@
   .chart-visual { flex: 1; font-family: monospace; letter-spacing: -2px; }
   .chart-percent { width: 40px; text-align: right; }
 </style>
+
+<!-- Phase 4: PapaParse CSV 라이브러리 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 <div class="page">
@@ -296,6 +299,7 @@
 
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('reception')">접수</button>
+    <button class="tab-btn" onclick="switchTab('csv')">📥 대량 업로드</button>
     <button class="tab-btn" onclick="switchTab('list')">목록 및 조회</button>
     <button class="tab-btn" onclick="switchTab('stats')">통계</button>
   </div>
@@ -446,6 +450,78 @@
   </div>
 
   <div class="receipt-section" id="receiptSection" style="display:none"></div>
+  </div>
+
+  <!-- Phase 4: CSV 대량 업로드 탭 -->
+  <div class="tab-content" id="tab-csv">
+    <h2>📥 대량 업로드 (CSV)</h2>
+
+    <!-- 파일 선택 -->
+    <div style="background: var(--card); padding: 20px; border: 2px dashed var(--border); border-radius: 8px; text-align: center; cursor: pointer;" id="csvDropZone" ondrop="handleCSVDrop(event)" ondragover="event.preventDefault()" ondragleave="event.preventDefault()">
+      <div style="font-size: 32px; margin-bottom: 10px;">📂</div>
+      <div style="font-size: 14px; color: var(--text); margin-bottom: 10px;">
+        <strong>CSV 파일을 여기에 드래그하거나 클릭</strong>
+      </div>
+      <div style="font-size: 12px; color: var(--muted);">
+        지원 형식: CSV (쉼표 구분값)<br/>
+        최대 크기: 10MB
+      </div>
+      <input type="file" id="csvFile" accept=".csv" onchange="handleCSVSelect(event)" style="display: none;">
+      <button type="button" style="margin-top: 10px; padding: 10px 20px; background: var(--brand); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="document.getElementById('csvFile').click();">파일 선택</button>
+    </div>
+
+    <!-- 샘플 다운로드 -->
+    <div style="margin-top: 15px;">
+      <button type="button" onclick="downloadSampleCSV()" style="padding: 10px 15px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;">📥 샘플 CSV 다운로드</button>
+    </div>
+
+    <!-- 필드 매핑 (파일 선택 후 표시) -->
+    <div id="csvMappingSection" style="display: none; margin-top: 20px; background: var(--card); padding: 20px; border: 1px solid var(--border); border-radius: 8px;">
+      <h3 style="margin-top: 0;">필드 매핑</h3>
+      <p style="font-size: 12px; color: var(--muted);">CSV 파일의 컬럼을 시스템 필드와 매칭하세요.</p>
+      <div id="csvMappingFields" style="display: grid; gap: 12px;"></div>
+    </div>
+
+    <!-- 미리보기 (검증 후 표시) -->
+    <div id="csvPreviewSection" style="display: none; margin-top: 20px;">
+      <h3>미리보기 및 검증</h3>
+      <div style="font-size: 12px; margin-bottom: 10px;">
+        <span id="csvValidCount" style="color: #26a668; font-weight: 600;">✓ 0건</span>
+        <span id="csvWarningCount" style="color: var(--warn-text); font-weight: 600;">⚠️ 0건</span>
+        <span id="csvErrorCount" style="color: var(--bad-text); font-weight: 600;">❌ 0건</span>
+      </div>
+      <div style="overflow-x: auto; max-height: 400px; border: 1px solid var(--border); border-radius: 8px;">
+        <table id="csvPreviewTable" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <thead style="position: sticky; top: 0; background: #f0f0f0;">
+            <tr id="csvPreviewHeader"></tr>
+          </thead>
+          <tbody id="csvPreviewBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 실행 버튼 -->
+    <div id="csvActionSection" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+      <button type="button" onclick="resetCSVUpload()" style="padding: 12px 20px; background: white; border: 1px solid var(--border); color: var(--text); border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 10px;">초기화</button>
+      <button type="button" onclick="submitCSVBatch()" id="csvSubmitBtn" disabled style="padding: 12px 20px; background: var(--brand); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">일괄 접수</button>
+    </div>
+
+    <!-- 진행률 표시 -->
+    <div id="csvProgressSection" style="display: none; margin-top: 20px;">
+      <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">진행률</div>
+      <div style="background: #f0f0f0; height: 20px; border-radius: 10px; overflow: hidden;">
+        <div id="csvProgressBar" style="width: 0%; height: 100%; background: var(--brand); transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 600;"></div>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: var(--muted);">
+        <span id="csvProgressText">대기 중...</span>
+      </div>
+    </div>
+
+    <!-- 완료 메시지 -->
+    <div id="csvCompleteSection" style="display: none; margin-top: 20px; background: var(--ok-bg); padding: 15px; border: 1px solid var(--ok-border); border-radius: 8px;">
+      <div style="font-size: 14px; font-weight: 600; color: #26a668;">✓ 일괄 접수 완료</div>
+      <div id="csvCompleteMessage" style="margin-top: 10px; font-size: 12px;"></div>
+    </div>
   </div>
 
   <div class="tab-content" id="tab-list">
@@ -1484,6 +1560,297 @@
   initAddressBook();
   renderList();
   recalc();
+
+  // ============================================================
+  // Phase 4: CSV 대량 업로드 기능
+  // ============================================================
+  let csvData = null;
+  let csvHeaders = [];
+  let csvFieldMapping = {};
+
+  function handleCSVSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    parseCSVFile(file);
+  }
+
+  function handleCSVDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const files = event.dataTransfer.files;
+    if (files.length > 0) parseCSVFile(files[0]);
+  }
+
+  function parseCSVFile(file) {
+    if (!file.name.endsWith('.csv')) {
+      alert('CSV 파일만 선택 가능합니다.');
+      return;
+    }
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        csvData = results.data;
+        csvHeaders = results.meta.fields || [];
+        showFieldMapping();
+      },
+      error: (error) => {
+        alert('파일 읽기 실패: ' + error.message);
+      }
+    });
+  }
+
+  function showFieldMapping() {
+    const requiredFields = ['sender_name', 'receiver_name', 'receiver_area', 'item_name', 'weight_kg', 'dimensions'];
+    const mappingDiv = document.getElementById('csvMappingFields');
+
+    mappingDiv.innerHTML = '';
+    csvFieldMapping = {};
+
+    requiredFields.forEach(field => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display: grid; grid-template-columns: 150px 1fr; gap: 10px; padding: 10px; background: #f9f9f9; border-radius: 6px; align-items: center;';
+
+      const label = document.createElement('span');
+      label.textContent = field + ' (필수)';
+      label.style.cssText = 'font-weight: 600; font-size: 12px;';
+
+      const select = document.createElement('select');
+      select.style.cssText = 'padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px;';
+      select.innerHTML = '<option value="">-- 선택 --</option>' +
+        csvHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+      select.onchange = () => csvFieldMapping[field] = select.value;
+
+      div.appendChild(label);
+      div.appendChild(select);
+      mappingDiv.appendChild(div);
+    });
+
+    document.getElementById('csvMappingSection').style.display = 'block';
+    document.getElementById('csvActionSection').style.display = 'block';
+    document.getElementById('csvSubmitBtn').disabled = true;
+  }
+
+  function downloadSampleCSV() {
+    const sample = `sender_name,receiver_name,receiver_area,item_name,weight_kg,dimensions,branch,shipping_option
+김민준,이서연,서울,이불,3.0,60x40x50,서울지점,standard
+박준호,최지운,부산,책,1.2,30x20x20,서울지점,standard
+이순신,유민준,인천,화장품,1.5,20x15x10,용산지점,express
+한승윤,김지호,대전,운동화,2.0,35x25x20,대전지점,overnight`;
+
+    const blob = new Blob([sample], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'sample-shipments.csv';
+    link.click();
+  }
+
+  function validateCSVData() {
+    if (!csvData || !csvData.length) {
+      alert('CSV 데이터가 없습니다.');
+      return null;
+    }
+
+    // 필드 매핑 확인
+    const requiredFields = ['sender_name', 'receiver_name', 'receiver_area', 'item_name', 'weight_kg', 'dimensions'];
+    for (let field of requiredFields) {
+      if (!csvFieldMapping[field]) {
+        alert(`필드 매핑이 완료되지 않았습니다: ${field}`);
+        return null;
+      }
+    }
+
+    // 행별 검증
+    const results = [];
+    csvData.forEach((row, idx) => {
+      const mapped = {};
+      Object.keys(csvFieldMapping).forEach(sysField => {
+        const csvField = csvFieldMapping[sysField];
+        mapped[sysField] = row[csvField] || '';
+      });
+
+      const validation = validateCSVRow(mapped, idx + 2); // 1 = 헤더, 2 = 첫 행
+      results.push({ row: mapped, status: validation.status, message: validation.message });
+    });
+
+    showPreview(results);
+    return results;
+  }
+
+  function validateCSVRow(row, rowNum) {
+    // 필수값 확인
+    if (!row.sender_name || !row.receiver_name || !row.receiver_area || !row.item_name || !row.weight_kg || !row.dimensions) {
+      return { status: 'error', message: '필수 값 누락' };
+    }
+
+    // 금지품목 검사
+    const ban = checkBanned(row.item_name);
+    if (ban.hardHits.length > 0) {
+      return { status: 'error', message: `금지 품목: ${ban.hardHits[0].keyword}` };
+    }
+
+    // 크기 파싱 (W×H×D 형식)
+    const dimMatch = row.dimensions.match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+)/i);
+    if (!dimMatch) {
+      return { status: 'error', message: '크기 형식 오류 (60x40x50 형식 필요)' };
+    }
+
+    const width = parseFloat(dimMatch[1]);
+    const height = parseFloat(dimMatch[2]);
+    const depth = parseFloat(dimMatch[3]);
+    const sumCm = width + height + depth;
+
+    // 무게 파싱
+    const weight = parseFloat(row.weight_kg);
+    if (isNaN(weight) || weight <= 0) {
+      return { status: 'error', message: '무게 형식 오류' };
+    }
+
+    // 부피 무게 & 등급 판정
+    const volumeWeight = (width * height * depth) / 6000;
+    const billedWeight = Math.max(weight, volumeWeight);
+    const grade = determineGrade(sumCm, billedWeight);
+
+    if (!grade) {
+      return { status: 'error', message: '한도 초과 (대형 상한)' };
+    }
+
+    return { status: 'success', message: `검증 완료 (${grade} 등급)` };
+  }
+
+  function showPreview(results) {
+    const validCount = results.filter(r => r.status === 'success').length;
+    const errorCount = results.filter(r => r.status === 'error').length;
+    const warningCount = results.filter(r => r.status === 'warning').length;
+
+    document.getElementById('csvValidCount').textContent = `✓ ${validCount}건`;
+    document.getElementById('csvErrorCount').textContent = `❌ ${errorCount}건`;
+    document.getElementById('csvWarningCount').textContent = `⚠️ ${warningCount}건`;
+
+    // 테이블 헤더
+    const thead = document.getElementById('csvPreviewHeader');
+    thead.innerHTML = `<th style="padding: 8px; text-align: left; border-bottom: 2px solid var(--border);">행</th>
+      <th style="padding: 8px; text-align: left; border-bottom: 2px solid var(--border);">상태</th>
+      <th style="padding: 8px; text-align: left; border-bottom: 2px solid var(--border);">보내는분</th>
+      <th style="padding: 8px; text-align: left; border-bottom: 2px solid var(--border);">받는분</th>
+      <th style="padding: 8px; text-align: left; border-bottom: 2px solid var(--border);">물품</th>`;
+
+    // 테이블 바디
+    const tbody = document.getElementById('csvPreviewBody');
+    tbody.innerHTML = results.map((r, idx) => `
+      <tr style="background: ${r.status === 'success' ? '#f0fff4' : '#fff5f5'}; border-bottom: 1px solid var(--border);">
+        <td style="padding: 8px;">${idx + 2}</td>
+        <td style="padding: 8px; color: ${r.status === 'success' ? '#26a668' : '#c0392b'}; font-weight: 600;">
+          ${r.status === 'success' ? '✓' : '✕'} ${r.message}
+        </td>
+        <td style="padding: 8px; font-size: 11px;">${r.row.sender_name}</td>
+        <td style="padding: 8px; font-size: 11px;">${r.row.receiver_name}</td>
+        <td style="padding: 8px; font-size: 11px;">${r.row.item_name}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('csvPreviewSection').style.display = 'block';
+    document.getElementById('csvSubmitBtn').disabled = errorCount > 0;
+  }
+
+  function submitCSVBatch() {
+    const results = validateCSVData();
+    if (!results) return;
+
+    const successRows = results.filter(r => r.status === 'success').map(r => r.row);
+    if (successRows.length === 0) {
+      alert('접수 가능한 항목이 없습니다.');
+      return;
+    }
+
+    // 진행률 표시
+    document.getElementById('csvProgressSection').style.display = 'block';
+    document.getElementById('csvActionSection').style.display = 'none';
+    document.getElementById('csvPreviewSection').style.display = 'none';
+
+    // 일괄 접수 시뮬레이션
+    let completed = 0;
+    successRows.forEach((row, idx) => {
+      setTimeout(() => {
+        // 기존 접수 함수 호출 (현재 form 데이터로 변환)
+        const shipment = {
+          branchName: row.branch || '서울지점',
+          senderName: row.sender_name,
+          receiverName: row.receiver_name,
+          receiverArea: row.receiver_area,
+          itemName: row.item_name,
+          weightKg: parseFloat(row.weight_kg),
+          trackingNo: '',
+          sizeGrade: '',
+          basePrice: 0,
+          finalPrice: 0,
+          regionType: determineRegion(row.receiver_area),
+          etaDate: '',
+          shippingOption: row.shipping_option || 'standard',
+          billedWeightKg: 0
+        };
+
+        // 운송장 생성 및 요금 계산
+        const branchCode = branchCodeOf(row.branch || '서울지점');
+        shipment.trackingNo = nextTrackingNo(branchCode);
+
+        // 크기 파싱
+        const dimMatch = row.dimensions.match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+)/i);
+        const width = parseFloat(dimMatch[1]);
+        const height = parseFloat(dimMatch[2]);
+        const depth = parseFloat(dimMatch[3]);
+        const sumCm = width + height + depth;
+        const volumeWeight = (width * height * depth) / 6000;
+        const billedWeight = Math.max(parseFloat(row.weight_kg), volumeWeight);
+
+        shipment.billedWeightKg = billedWeight;
+        shipment.sizeGrade = determineGrade(sumCm, billedWeight);
+
+        const grade = RATE_TABLE.find(t => t.grade === shipment.sizeGrade);
+        shipment.basePrice = grade.price[shipment.regionType];
+        shipment.finalPrice = Math.round(shipment.basePrice * getShippingOptionMultiplier(shipment.shippingOption));
+
+        const etaInfo = addBusinessDaysTrace(new Date(), ETA_BUSINESS_DAYS[shipment.regionType] + getShippingOptionDayOffset(shipment.shippingOption));
+        shipment.etaDate = formatDateISO(etaInfo.finalDate);
+
+        savedShipments.push(shipment);
+
+        completed++;
+        const percent = Math.round((completed / successRows.length) * 100);
+        document.getElementById('csvProgressBar').style.width = percent + '%';
+        document.getElementById('csvProgressBar').textContent = percent + '%';
+        document.getElementById('csvProgressText').textContent = `${completed}/${successRows.length} 접수됨`;
+
+        if (completed === successRows.length) {
+          setTimeout(() => {
+            document.getElementById('csvProgressSection').style.display = 'none';
+            document.getElementById('csvCompleteSection').style.display = 'block';
+            document.getElementById('csvCompleteMessage').innerHTML = `
+              <strong>${successRows.length}건</strong>의 배송이 성공적으로 접수되었습니다.<br/>
+              운송장 번호: ${savedShipments.slice(-successRows.length).map(s => s.trackingNo).join(', ')}
+            `;
+            renderList();
+            updateStats();
+            resetCSVUpload();
+          }, 500);
+        }
+      }, idx * 100); // 시각적 진행 효과
+    });
+  }
+
+  function resetCSVUpload() {
+    csvData = null;
+    csvHeaders = [];
+    csvFieldMapping = {};
+    document.getElementById('csvFile').value = '';
+    document.getElementById('csvMappingSection').style.display = 'none';
+    document.getElementById('csvPreviewSection').style.display = 'none';
+    document.getElementById('csvProgressSection').style.display = 'none';
+    document.getElementById('csvCompleteSection').style.display = 'none';
+    document.getElementById('csvActionSection').style.display = 'none';
+    document.getElementById('csvSubmitBtn').disabled = true;
+  }
 </script>
 </body>
 </html>
