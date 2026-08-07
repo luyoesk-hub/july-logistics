@@ -118,11 +118,48 @@
   .receipt-line { font-size: 13px; margin-top: 4px; }
   .receipt-price { font-size: 24px; font-weight: 800; color: var(--brand-dark); margin: 10px 0; }
 
+  .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+  .tab-btn {
+    padding: 12px 18px; background: none; border: none; color: var(--muted); font-size: 14px;
+    font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  .tab-btn.active { color: var(--brand); border-bottom-color: var(--brand); }
+  .tab-btn:hover { color: var(--brand); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
   .list-section { margin-top: 20px; }
   .list-section table { width: 100%; border-collapse: collapse; font-size: 11.5px; background: #fff; }
   .list-section th, .list-section td { border: 1px solid var(--border); padding: 6px 5px; text-align: left; }
   .list-section th { background: #eef2f6; }
   .empty-row td { text-align: center; color: var(--muted); padding: 14px; }
+
+  .list-controls { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .search-box { flex: 1; min-width: 200px; }
+  .search-box input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+  .filter-btn { padding: 10px 14px; background: #fff; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .filter-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+  .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+  .modal.active { display: flex; align-items: center; justify-content: center; }
+  .modal-content { background: #fff; border-radius: 12px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
+  .modal-close { float: right; font-size: 24px; cursor: pointer; color: var(--muted); }
+  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+  .modal-row.full { grid-column: 1 / -1; }
+  .modal-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+  .modal-value { font-size: 14px; color: var(--text); }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 800; color: var(--brand); }
+  .stat-detail { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  .action-btn { padding: 8px 12px; background: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .action-btn.edit { color: var(--brand); border-color: var(--brand); }
+  .action-btn.delete { color: #c0392b; border-color: #eab6b0; }
 </style>
 </head>
 <body>
@@ -132,6 +169,13 @@
     <div class="sub">한장완성판 - 규정 전 조항 반영 / 계산 과정 실시간 표시</div>
   </div>
 
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('reception')">접수</button>
+    <button class="tab-btn" onclick="switchTab('list')">목록 및 조회</button>
+    <button class="tab-btn" onclick="switchTab('stats')">통계</button>
+  </div>
+
+  <div class="tab-content active" id="tab-reception">
   <div class="layout">
     <section class="form-panel">
       <h2>접수 정보 입력</h2>
@@ -213,22 +257,161 @@
   </div>
 
   <div class="receipt-section" id="receiptSection" style="display:none"></div>
+  </div>
 
-  <div class="list-section">
-    <h2 style="font-size:14px;color:var(--muted);margin:0 0 8px 2px;">오늘 접수 목록 (이 브라우저 세션에서만 유지)</h2>
-    <table>
+  <div class="tab-content" id="tab-list">
+    <h2>접수 목록 및 조회</h2>
+    <div class="list-controls">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="운송장번호, 이름, 물품명 검색..." oninput="filterList()">
+      </div>
+      <button class="filter-btn active" onclick="setFilterBranch('all')">전체</button>
+      <button class="filter-btn" onclick="setFilterBranch('11')">서울</button>
+      <button class="filter-btn" onclick="setFilterBranch('12')">용산</button>
+      <button class="filter-btn" onclick="setFilterBranch('21')">대전</button>
+      <button class="filter-btn" onclick="setFilterBranch('31')">진주</button>
+      <button class="filter-btn" onclick="setFilterBranch('32')">거제</button>
+      <button class="filter-btn" onclick="setFilterBranch('41')">울산</button>
+    </div>
+    <div class="list-section">
+      <table>
+        <thead>
+          <tr>
+            <th>운송장</th><th>지점</th><th>보내는분</th><th>받는분</th><th>도착지역</th>
+            <th>권역</th><th>물품</th><th>요금무게</th><th>등급</th><th>요금</th><th>도착예정</th><th style="width:70px">작업</th>
+          </tr>
+        </thead>
+        <tbody id="listBody"><tr class="empty-row"><td colspan="12">아직 접수 내역이 없습니다</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-stats">
+    <h2>통계 대시보드</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">전체 접수</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-detail" id="statTotalDetail"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">총 요금</div>
+        <div class="stat-value" id="statRevenue">0원</div>
+        <div class="stat-detail" id="statRevenueDetail"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">평균 요금</div>
+        <div class="stat-value" id="statAvgPrice">0원</div>
+        <div class="stat-detail">건당 평균</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">접수 거절</div>
+        <div class="stat-value" id="statRejected">0</div>
+        <div class="stat-detail">금지품목 또는 한도초과</div>
+      </div>
+    </div>
+
+    <h3>지점별 통계</h3>
+    <table style="width:100%; border-collapse: collapse;">
       <thead>
-        <tr>
-          <th>운송장</th><th>지점</th><th>보내는분</th><th>받는분</th><th>도착지역</th>
-          <th>권역</th><th>물품</th><th>요금무게</th><th>등급</th><th>요금</th><th>도착예정</th>
+        <tr style="background: #eef2f6;">
+          <th style="border: 1px solid var(--border); padding: 8px;">지점</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">건수</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">총 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">평균 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">가장 많은 권역</th>
         </tr>
       </thead>
-      <tbody id="listBody"><tr class="empty-row"><td colspan="11">아직 접수 내역이 없습니다</td></tr></tbody>
+      <tbody id="statsByBranch">
+        <tr style="text-align: center; color: var(--muted);"><td colspan="5" style="padding: 14px;">데이터 없음</td></tr>
+      </tbody>
     </table>
+
+    <h3 style="margin-top: 20px;">권역별 통계</h3>
+    <table style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #eef2f6;">
+          <th style="border: 1px solid var(--border); padding: 8px;">권역</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">건수</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">총 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">평균 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">가장 많은 등급</th>
+        </tr>
+      </thead>
+      <tbody id="statsByRegion">
+        <tr style="text-align: center; color: var(--muted);"><td colspan="5" style="padding: 14px;">데이터 없음</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top: 20px;">크기 등급별 통계</h3>
+    <table style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #eef2f6;">
+          <th style="border: 1px solid var(--border); padding: 8px;">등급</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">건수</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">비율</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">총 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">평균 요금</th>
+        </tr>
+      </thead>
+      <tbody id="statsByGrade">
+        <tr style="text-align: center; color: var(--muted);"><td colspan="5" style="padding: 14px;">데이터 없음</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeEditModal()">&times;</span>
+      <div class="modal-title">접수 상세 및 수정</div>
+      <form id="editForm" style="margin-top: 20px;">
+        <div class="modal-row">
+          <div><div class="modal-label">운송장</div><div class="modal-value" id="editTrackingNo"></div></div>
+          <div><div class="modal-label">지점</div><div class="modal-value" id="editBranch"></div></div>
+        </div>
+        <div class="modal-row">
+          <div><label class="modal-label">보내는 분 이름</label><input type="text" id="editSender" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;"></div>
+          <div><label class="modal-label">받는 분 이름</label><input type="text" id="editReceiver" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;"></div>
+        </div>
+        <div class="modal-row full">
+          <label class="modal-label">물품명</label><input type="text" id="editItem" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;">
+        </div>
+        <div class="modal-row">
+          <div><div class="modal-label">도착 지역</div><div class="modal-value" id="editArea"></div></div>
+          <div><div class="modal-label">권역</div><div class="modal-value" id="editRegion"></div></div>
+        </div>
+        <div class="modal-row">
+          <div><div class="modal-label">실제 무게</div><div class="modal-value" id="editWeight"></div></div>
+          <div><div class="modal-label">요금 무게</div><div class="modal-value" id="editBilledWeight"></div></div>
+        </div>
+        <div class="modal-row">
+          <div><div class="modal-label">크기 등급</div><div class="modal-value" id="editGrade"></div></div>
+          <div><div class="modal-label">요금</div><div class="modal-value" id="editPrice"></div></div>
+        </div>
+        <div class="modal-row full">
+          <div><div class="modal-label">도착 예정일</div><div class="modal-value" id="editETA"></div></div>
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+          <button type="button" onclick="deleteShipment()" style="flex:1; padding:12px; background: #fbeceb; border: 1px solid #eab6b0; border-radius:8px; color:#c0392b; font-weight:600; cursor:pointer;">취소하기</button>
+          <button type="button" onclick="closeEditModal()" style="flex:1; padding:12px; background: #fff; border: 1px solid var(--border); border-radius:8px; cursor:pointer;">닫기</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
 <script>
+  // ============================================================
+  // 탭 관리
+  // ============================================================
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tabName).classList.add('active');
+    event.target.classList.add('active');
+    if (tabName === 'stats') updateStats();
+  }
+
   // ============================================================
   // 계산 정본 - 02_접수규정.md §1-9를 그대로 옮겼다. 이 블록만 떼어
   // setup.sql 샘플 5건과 대조하면 규정과 일치하는지 검산할 수 있다.
@@ -583,18 +766,167 @@
   // 접수 완료 - 운송장 발급 + 목록 반영 + 영수증 표시
   // ============================================================
   const savedShipments = [];
-  function renderList() {
+  let currentFilterBranch = 'all';
+  let currentSearchTerm = '';
+  let editingIndex = -1;
+
+  function filterList() {
     const body = document.getElementById('listBody');
-    if (savedShipments.length === 0) {
-      body.innerHTML = '<tr class="empty-row"><td colspan="11">아직 접수 내역이 없습니다</td></tr>';
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    currentSearchTerm = searchTerm;
+
+    const filtered = savedShipments.filter((s, idx) => {
+      const branchMatch = currentFilterBranch === 'all' || s.trackingNo.substring(0, 2) === currentFilterBranch;
+      const searchMatch = !searchTerm ||
+        s.trackingNo.includes(searchTerm) ||
+        s.senderName.toLowerCase().includes(searchTerm) ||
+        s.receiverName.toLowerCase().includes(searchTerm) ||
+        s.itemName.toLowerCase().includes(searchTerm);
+      return branchMatch && searchMatch;
+    });
+
+    if (filtered.length === 0) {
+      body.innerHTML = '<tr class="empty-row"><td colspan="12">검색 결과가 없습니다</td></tr>';
       return;
     }
-    body.innerHTML = savedShipments.map(s => `
+
+    body.innerHTML = filtered.map((s, idx) => {
+      const realIdx = savedShipments.indexOf(s);
+      return `
       <tr>
         <td>${s.trackingNo}</td><td>${s.branchName}</td><td>${s.senderName}</td><td>${s.receiverName}</td>
         <td>${s.receiverArea}</td><td>${s.regionType}</td><td>${s.itemName}</td>
         <td>${s.billedWeightKg}kg</td><td>${s.sizeGrade}</td><td>${formatWon(s.price)}</td><td>${s.etaDate}</td>
-      </tr>`).join('');
+        <td style="text-align:center;">
+          <button class="action-btn edit" onclick="openEditModal(${realIdx})">상세</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function setFilterBranch(code) {
+    currentFilterBranch = code;
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    filterList();
+  }
+
+  function openEditModal(idx) {
+    editingIndex = idx;
+    const s = savedShipments[idx];
+    document.getElementById('editTrackingNo').textContent = s.trackingNo;
+    document.getElementById('editBranch').textContent = s.branchName;
+    document.getElementById('editSender').value = s.senderName;
+    document.getElementById('editReceiver').value = s.receiverName;
+    document.getElementById('editItem').value = s.itemName;
+    document.getElementById('editArea').textContent = s.receiverArea;
+    document.getElementById('editRegion').textContent = s.regionType;
+    document.getElementById('editWeight').textContent = s.weightKg + 'kg';
+    document.getElementById('editBilledWeight').textContent = s.billedWeightKg + 'kg';
+    document.getElementById('editGrade').textContent = s.sizeGrade;
+    document.getElementById('editPrice').textContent = formatWon(s.price);
+    document.getElementById('editETA').textContent = s.etaDate;
+    document.getElementById('editModal').classList.add('active');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+    editingIndex = -1;
+  }
+
+  function deleteShipment() {
+    if (editingIndex >= 0 && confirm('이 접수를 취소하시겠습니까?')) {
+      savedShipments.splice(editingIndex, 1);
+      closeEditModal();
+      filterList();
+      updateStats();
+    }
+  }
+
+  function updateStats() {
+    const total = savedShipments.length;
+    const totalPrice = savedShipments.reduce((sum, s) => sum + s.price, 0);
+    const avgPrice = total > 0 ? Math.round(totalPrice / total) : 0;
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statRevenue').textContent = formatWon(totalPrice);
+    document.getElementById('statAvgPrice').textContent = formatWon(avgPrice);
+
+    // Branch stats
+    const byBranch = {};
+    savedShipments.forEach(s => {
+      const code = s.trackingNo.substring(0, 2);
+      if (!byBranch[code]) {
+        byBranch[code] = { count: 0, total: 0, regions: {}, name: s.branchName };
+      }
+      byBranch[code].count++;
+      byBranch[code].total += s.price;
+      byBranch[code].regions[s.regionType] = (byBranch[code].regions[s.regionType] || 0) + 1;
+    });
+
+    const branchRows = Object.entries(byBranch).map(([code, data]) => {
+      const avgBranch = Math.round(data.total / data.count);
+      const mainRegion = Object.keys(data.regions).sort((a, b) => data.regions[b] - data.regions[a])[0];
+      return `<tr style="border: 1px solid var(--border);">
+        <td style="padding:8px;">${data.name}</td>
+        <td style="padding:8px;text-align:center;">${data.count}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(data.total)}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(avgBranch)}</td>
+        <td style="padding:8px;">${mainRegion || '-'}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('statsByBranch').innerHTML = branchRows || '<tr style="text-align:center;color:var(--muted);"><td colspan="5" style="padding:14px;">데이터 없음</td></tr>';
+
+    // Region stats
+    const byRegion = {};
+    savedShipments.forEach(s => {
+      if (!byRegion[s.regionType]) {
+        byRegion[s.regionType] = { count: 0, total: 0, grades: {} };
+      }
+      byRegion[s.regionType].count++;
+      byRegion[s.regionType].total += s.price;
+      byRegion[s.regionType].grades[s.sizeGrade] = (byRegion[s.regionType].grades[s.sizeGrade] || 0) + 1;
+    });
+
+    const regionRows = Object.entries(byRegion).map(([region, data]) => {
+      const avgRegion = Math.round(data.total / data.count);
+      const mainGrade = Object.keys(data.grades).sort((a, b) => data.grades[b] - data.grades[a])[0];
+      return `<tr style="border: 1px solid var(--border);">
+        <td style="padding:8px;">${region}</td>
+        <td style="padding:8px;text-align:center;">${data.count}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(data.total)}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(avgRegion)}</td>
+        <td style="padding:8px;">${mainGrade || '-'}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('statsByRegion').innerHTML = regionRows || '<tr style="text-align:center;color:var(--muted);"><td colspan="5" style="padding:14px;">데이터 없음</td></tr>';
+
+    // Grade stats
+    const byGrade = {};
+    savedShipments.forEach(s => {
+      if (!byGrade[s.sizeGrade]) {
+        byGrade[s.sizeGrade] = { count: 0, total: 0 };
+      }
+      byGrade[s.sizeGrade].count++;
+      byGrade[s.sizeGrade].total += s.price;
+    });
+
+    const gradeRows = Object.entries(byGrade).map(([grade, data]) => {
+      const pct = Math.round(data.count * 100 / total);
+      const avgGrade = Math.round(data.total / data.count);
+      return `<tr style="border: 1px solid var(--border);">
+        <td style="padding:8px;">${grade}</td>
+        <td style="padding:8px;text-align:center;">${data.count}</td>
+        <td style="padding:8px;text-align:center;">${pct}%</td>
+        <td style="padding:8px;text-align:right;">${formatWon(data.total)}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(avgGrade)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('statsByGrade').innerHTML = gradeRows || '<tr style="text-align:center;color:var(--muted);"><td colspan="5" style="padding:14px;">데이터 없음</td></tr>';
+  }
+
+  function renderList() {
+    filterList();
   }
 
   function showReceipt(record) {
