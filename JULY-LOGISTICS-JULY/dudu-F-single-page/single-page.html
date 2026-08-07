@@ -55,6 +55,33 @@
   }
   .form-panel { padding: 22px; border-right: 1px solid var(--border); }
   .calc-panel { padding: 22px; background: var(--calc-bg); }
+  /* Phase 3-C: 다크모드 지원 */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --brand: #4a90e2;
+      --brand-dark: #357abd;
+      --accent: #ff9f43;
+      --bg: #1a1a1a;
+      --card: #2d2d2d;
+      --border: #404040;
+      --text: #e0e0e0;
+      --muted: #999999;
+      --ok-bg: #1e3a3a;
+      --ok-border: #2d5a4a;
+      --bad-bg: #3a2121;
+      --bad-border: #5a3a3a;
+      --bad-text: #ff6b6b;
+      --warn-bg: #3a3a1a;
+      --warn-border: #5a5a2a;
+      --warn-text: #ffd700;
+      --calc-bg: #252d3a;
+      --calc-border: #3a4a60;
+    }
+    body { background: var(--bg); color: var(--text); }
+    input[type="text"], input[type="number"], select { background: #3a3a3a; color: var(--text); border-color: var(--border); }
+    .reset-btn { background: var(--card); color: var(--text); border-color: var(--border); }
+  }
+
   @media (max-width: 900px) {
     .layout { grid-template-columns: 1fr; }
     .form-panel { border-right: none; border-bottom: 1px solid var(--border); }
@@ -77,6 +104,15 @@
   .badge { display: inline-block; padding: 5px 9px; border-radius: 6px; }
   .badge.bad { background: var(--bad-bg); border: 1px solid var(--bad-border); color: var(--bad-text); }
   .badge.warn { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); }
+
+  /* Phase 3-C: 상태 배지 */
+  .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 6px; background: #26a668; color: white; font-size: 12px; font-weight: 600; }
+  .status-badge .badge-icon { font-size: 14px; }
+
+  /* 운송장 복사 */
+  .tracking-cell { cursor: pointer; user-select: none; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; }
+  .tracking-cell:hover { background: var(--warn-bg); }
+  .tracking-cell.copied { background: #26a668; color: white; }
 
   .soft-confirm { margin-top: 10px; background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: var(--warn-text); }
   .soft-confirm label { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-weight: 700; color: var(--text); }
@@ -626,6 +662,23 @@
     return offsets[option] || 0;
   }
 
+  // Phase 3-C: 운송장 번호 복사
+  function copyTrackingNo(trackingNo, event) {
+    event?.stopPropagation?.();
+    navigator.clipboard.writeText(trackingNo).then(() => {
+      const cell = event?.target;
+      if (cell) {
+        const original = cell.textContent;
+        cell.textContent = '✓ 복사됨!';
+        cell.classList.add('copied');
+        setTimeout(() => {
+          cell.textContent = original;
+          cell.classList.remove('copied');
+        }, 2000);
+      }
+    });
+  }
+
   // ============================================================
   // 탭 관리
   // ============================================================
@@ -1037,9 +1090,10 @@
       const realIdx = savedShipments.indexOf(s);
       return `
       <tr>
-        <td>${s.trackingNo}</td><td>${s.branchName}</td><td>${s.senderName}</td><td>${s.receiverName}</td>
+        <td><span class="tracking-cell" onclick="copyTrackingNo('${s.trackingNo}', event)">${s.trackingNo}</span></td><td>${s.branchName}</td><td>${s.senderName}</td><td>${s.receiverName}</td>
         <td>${s.receiverArea}</td><td>${s.regionType}</td><td>${s.itemName}</td>
         <td>${s.billedWeightKg}kg</td><td>${s.sizeGrade}</td><td>${getShippingOptionLabel(s.shippingOption)}</td><td>${formatWon(s.finalPrice)}</td><td>${s.etaDate}</td>
+        <td style="text-align:center;"><span class="status-badge"><span class="badge-icon">✓</span> 접수완료</span></td>
         <td style="text-align:center;">
           <button class="action-btn edit" onclick="openEditModal(${realIdx})">상세</button>
         </td>
