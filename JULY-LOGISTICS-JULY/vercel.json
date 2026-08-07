@@ -1,17 +1,13 @@
 {
-  "name": "july-logistics",
-  "buildCommand": "echo 'No build needed'",
-  "outputDirectory": ".",
+  "version": 2,
+  "name": "dudu-reception",
   "public": true,
-  "headers": [
+  "buildCommand": "",
+  "outputDirectory": ".",
+  "rewrites": [
     {
       "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
+      "destination": "/index.html"
     }
   ]
 }

@@ -1,828 +1,1489 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>두두택배 접수 화면</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>두두택배 접수 - 한장완성판</title>
+<!--
+  두두택배 접수 - F. 한장완성판
+  =================================================
+  이 변형의 존재 이유 - 단계 이동 없이 화면 하나로 접수규정 전체를 설명할 때
+  쓴다. A_최소판.html이 검증을 의도적으로 하나도 안 넣은 빈 캔버스라면,
+  이 파일은 그 반대 극단이다 - 규정(02_접수규정.md) 8절 계산 순서, 5절
+  금지품목 7분류, 3절 요금표 12종, 2절 권역 판정을 전부 넣고 결함을
+  남기지 않았다. 핵심 차별점 - 오른쪽 계산 패널이 입력 즉시(oninput) 부피
+  무게・요금 무게・세 변의 합・등급 판정 과정・권역・요금・도착예정일을
+  숫자를 그대로 대입한 계산식으로 펼쳐 보인다("왜 이 값이 나왔는가").
+  검증 - mcp Claude_Browser preview로 실제 접수 5건을 끝까지(접수완료 버튼
+  클릭 -> 운송장 발급 -> 목록 반영) 직접 입력해 통과시켰다. setup.sql 샘플
+  전건와 운송장번호까지 일치 - 이불(1100000001, 대형, 9000원, 서울/일반),
+  책(1200000001, 중형, 6000원, 서울/일반), 화장품(3100000001, 극소형,
+  3500원, 진주/일반 - 진주=일반 지역 규정 §2 실제 확인), 운동화(3200000001,
+  소형, 4000원, 거제/일반 - 거제=일반 지역 실제 확인), 쌀(4100000001,
+  중형, 6000원, 울산/일반, 세변합70cm+8kg 한 등급 상향 규정 §3 실제 확인).
+  금지품목 2건(라이터/인화성, 현금/금전 - 접수 차단 + 계산 §8-1에서 중단
+  확인) + 한도초과 1건(커튼 3.8kg 64x53x47 -> 세변합164cm/요금무게26.57kg,
+  verified_300.csv 실제 사례와 일치 - 접수 불가 확인)을 전부 직접 클릭해
+  확인했다. 콘솔 에러 0(read_console_messages 실측).
+-->
+<style>
+  :root {
+    --brand: #14508c; --brand-dark: #0d3a66; --accent: #e0692a;
+    --bg: #eef1f4; --card: #ffffff; --border: #d7dde3; --text: #1c2733; --muted: #667485;
+    --ok-bg: #eef7f0; --ok-border: #b9dfc2;
+    --bad-bg: #fbeceb; --bad-border: #eab6b0; --bad-text: #c0392b;
+    --warn-bg: #fff8e6; --warn-border: #f0d68a; --warn-text: #8a6d1f;
+    --calc-bg: #f5f8fc; --calc-border: #cfe0f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px 16px 60px;
+  }
+  .page { max-width: 1120px; margin: 0 auto; }
+  .topbar { background: var(--brand); color: #fff; padding: 16px 22px; border-radius: 14px 14px 0 0; }
+  .topbar .brand { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+  .topbar .sub { font-size: 12px; opacity: .85; margin-top: 4px; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+  .layout {
+    display: grid; grid-template-columns: 1.15fr 1fr; gap: 0;
+    background: var(--card); border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 14px 14px; overflow: hidden; align-items: start;
+  }
+  .form-panel { padding: 22px; border-right: 1px solid var(--border); }
+  .calc-panel { padding: 22px; background: var(--calc-bg); }
+  /* Phase 3-C: 다크모드 지원 */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --brand: #4a90e2;
+      --brand-dark: #357abd;
+      --accent: #ff9f43;
+      --bg: #1a1a1a;
+      --card: #2d2d2d;
+      --border: #404040;
+      --text: #e0e0e0;
+      --muted: #999999;
+      --ok-bg: #1e3a3a;
+      --ok-border: #2d5a4a;
+      --bad-bg: #3a2121;
+      --bad-border: #5a3a3a;
+      --bad-text: #ff6b6b;
+      --warn-bg: #3a3a1a;
+      --warn-border: #5a5a2a;
+      --warn-text: #ffd700;
+      --calc-bg: #252d3a;
+      --calc-border: #3a4a60;
+    }
+    body { background: var(--bg); color: var(--text); }
+    input[type="text"], input[type="number"], select { background: #3a3a3a; color: var(--text); border-color: var(--border); }
+    .reset-btn { background: var(--card); color: var(--text); border-color: var(--border); }
+  }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
+  /* Phase 3-A: 반응형 중단점 */
+  @media (max-width: 1120px) {
+    .shipping-options { grid-template-columns: repeat(3, 1fr); }
+  }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .form-panel { border-right: none; border-bottom: 1px solid var(--border); }
+    .shipping-options { grid-template-columns: repeat(2, 1fr); }
+    .step-label { font-size: 10px; }
+    .topbar .brand { font-size: 20px; }
+  }
 
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
+  @media (max-width: 768px) {
+    .shipping-options { grid-template-columns: 1fr; }
+    .field-grid { grid-template-columns: 1fr; }
+    .row3 { grid-template-columns: 1fr; }
+    table { font-size: 12px; }
+    th, td { padding: 6px 8px !important; }
+    .option-card { padding: 10px; }
+    .topbar { padding: 12px 16px; }
+    .form-panel, .calc-panel { padding: 16px; }
+  }
 
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
+  @media (max-width: 480px) {
+    body { padding: 12px 8px 60px; }
+    .topbar .brand { font-size: 18px; }
+    .topbar .sub { font-size: 11px; }
+    .submit-btn, .reset-btn { padding: 12px; font-size: 14px; }
+    .shipping-options { gap: 6px; }
+    .option-card { padding: 8px; font-size: 12px; }
+    .step { flex: 0; gap: 2px; }
+    .step-number { width: 28px; height: 28px; font-size: 11px; }
+    .step-label { font-size: 9px; }
+    .step-divider { margin: 0 -6px; }
+  }
 
-        .content {
-            padding: 30px;
-        }
+  h2 { font-size: 16px; margin: 0 0 14px; }
+  h3 { font-size: 13px; color: var(--muted); margin: 18px 0 8px; }
 
-        .form-section {
-            margin-bottom: 30px;
-        }
+  .field-note { font-size: 11.5px; color: var(--muted); margin: -8px 0 14px; line-height: 1.5; }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .field.wide, .field.dims { grid-column: 1 / -1; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 6px; }
+  .req { color: var(--bad-text); font-weight: 700; font-size: 11px; }
+  input[type="text"], input[type="number"], select {
+    width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 15px; background: #fff; font-family: inherit;
+  }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .inline-warning { min-height: 18px; margin-top: 6px; font-size: 12.5px; }
+  .badge { display: inline-block; padding: 5px 9px; border-radius: 6px; }
+  .badge.bad { background: var(--bad-bg); border: 1px solid var(--bad-border); color: var(--bad-text); }
+  .badge.warn { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); }
 
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #667eea;
-            display: inline-block;
-        }
+  /* Phase 3-C: 상태 배지 */
+  .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 6px; background: #26a668; color: white; font-size: 12px; font-weight: 600; }
+  .status-badge .badge-icon { font-size: 14px; }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
+  /* 운송장 복사 */
+  .tracking-cell { cursor: pointer; user-select: none; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; }
+  .tracking-cell:hover { background: var(--warn-bg); }
+  .tracking-cell.copied { background: #26a668; color: white; }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
+  .soft-confirm { margin-top: 10px; background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; color: var(--warn-text); }
+  .soft-confirm label { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-weight: 700; color: var(--text); }
 
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
+  .error-box { margin-top: 14px; min-height: 1px; }
+  .error-title { font-size: 12.5px; font-weight: 700; color: var(--bad-text); margin-bottom: 4px; }
+  .error-box ul { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--bad-text); line-height: 1.6; }
 
-        .form-group.half {
-            grid-column: span 1;
-        }
+  .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+  .submit-btn {
+    flex: 2; padding: 15px; font-size: 16px; font-weight: 800; color: #fff;
+    background: var(--brand); border: none; border-radius: 10px; cursor: pointer;
+  }
+  .submit-btn:disabled { background: #a9b6c4; cursor: not-allowed; }
+  .submit-btn:not(:disabled):active { background: var(--brand-dark); }
+  .reset-btn {
+    flex: 1; padding: 15px; font-size: 14px; font-weight: 700; color: var(--text);
+    background: #fff; border: 1px solid var(--border); border-radius: 10px; cursor: pointer;
+  }
 
-        label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 6px;
-        }
+  .calc-pending { color: var(--muted); font-size: 13px; padding: 34px 10px; text-align: center; border: 1px dashed var(--calc-border); border-radius: 10px; background: #fff; }
+  .calc-step { background: #fff; border: 1px solid var(--calc-border); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; }
+  .calc-step-title { font-weight: 700; color: var(--brand-dark); margin-bottom: 4px; font-size: 13px; }
+  .calc-step-body { color: var(--text); line-height: 1.65; }
+  .calc-step.reject { background: var(--bad-bg); border-color: var(--bad-border); }
+  .calc-step.reject .calc-step-title { color: var(--bad-text); }
+  .calc-step.pending-note { background: #f6f8fa; color: var(--muted); }
 
-        .required::after {
-            content: " *";
-            color: #e74c3c;
-        }
+  table.rate-table { width: 100%; border-collapse: collapse; font-size: 11.5px; background: #fff; }
+  table.rate-table th, table.rate-table td { border: 1px solid var(--border); padding: 6px 5px; text-align: center; }
+  table.rate-table th { background: #eef2f6; }
+  table.rate-table tr.grade-match td:first-child { background: #dbe9f7; font-weight: 700; }
+  table.rate-table td.cell-match { background: var(--brand); color: #fff; font-weight: 800; }
 
-        input[type="text"],
-        input[type="tel"],
-        input[type="number"],
-        select {
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            font-family: inherit;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
+  .receipt-section { margin-top: 18px; }
+  .receipt-card { background: var(--ok-bg); border: 1px solid var(--ok-border); border-radius: 12px; padding: 18px; text-align: center; }
+  .receipt-title { font-weight: 800; font-size: 15px; }
+  .receipt-tno { font-size: 20px; font-weight: 800; color: var(--brand-dark); margin: 8px 0; }
+  .receipt-line { font-size: 13px; margin-top: 4px; }
+  .receipt-price { font-size: 24px; font-weight: 800; color: var(--brand-dark); margin: 10px 0; }
 
-        input[type="text"]:focus,
-        input[type="tel"]:focus,
-        input[type="number"]:focus,
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
+  .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+  .tab-btn {
+    padding: 12px 18px; background: none; border: none; color: var(--muted); font-size: 14px;
+    font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  .tab-btn.active { color: var(--brand); border-bottom-color: var(--brand); }
+  .tab-btn:hover { color: var(--brand); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
 
-        .dimensions-group {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
+  .list-section { margin-top: 20px; }
+  .list-section table { width: 100%; border-collapse: collapse; font-size: 11.5px; background: #fff; }
+  .list-section th, .list-section td { border: 1px solid var(--border); padding: 6px 5px; text-align: left; }
+  .list-section th { background: #eef2f6; }
+  .empty-row td { text-align: center; color: var(--muted); padding: 14px; }
 
-        .dimensions-group input {
-            width: 100%;
-        }
+  .list-controls { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .search-box { flex: 1; min-width: 200px; }
+  .search-box input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+  .filter-btn { padding: 10px 14px; background: #fff; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .filter-btn.active { background: var(--brand); color: #fff; border-color: var(--brand); }
 
-        .dimensions-group .dimension-label {
-            font-size: 12px;
-            color: #999;
-            margin-top: 4px;
-        }
+  .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+  .modal.active { display: flex; align-items: center; justify-content: center; }
+  .modal-content { background: #fff; border-radius: 12px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
+  .modal-close { float: right; font-size: 24px; cursor: pointer; color: var(--muted); }
+  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+  .modal-row.full { grid-column: 1 / -1; }
+  .modal-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+  .modal-value { font-size: 14px; color: var(--text); }
 
-        .output-section {
-            background: #f8f9fa;
-            border: 2px solid #e8e8e8;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 800; color: var(--brand); }
+  .stat-detail { font-size: 12px; color: var(--muted); margin-top: 6px; }
 
-        .output-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 15px;
-        }
+  .action-btn { padding: 8px 12px; background: #fff; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .action-btn.edit { color: var(--brand); border-color: var(--brand); }
+  .action-btn.delete { color: #c0392b; border-color: #eab6b0; }
 
-        .output-row:last-child {
-            margin-bottom: 0;
-        }
+  .address-book { display: flex; gap: 8px; margin-top: 6px; }
+  .addr-dropdown { flex: 1; }
+  .addr-dropdown select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: #fff; }
+  .addr-btn { padding: 9px 12px; background: var(--ok-bg); border: 1px solid var(--ok-border); border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--text); font-weight: 600; }
+  .addr-btn:active { background: #d7e8e0; }
 
-        .output-item {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 15px;
-            text-align: center;
-        }
+  .shipping-options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0; }
+  .option-card { padding: 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s ease; background: var(--card); }
+  .option-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(20, 80, 140, 0.1); }
+  .option-card.selected { border: 2px solid var(--brand); background: #e8f1ff; box-shadow: 0 2px 8px rgba(20, 80, 140, 0.15); }
+  .option-card label { display: block; cursor: pointer; font-weight: 600; font-size: 13px; }
+  .option-card input[type="radio"] { cursor: pointer; }
+  .option-price { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
-        .output-label {
-            font-size: 12px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
+  /* Phase 3-B: Step Indicator */
+  .progress-bar { display: flex; align-items: center; margin-bottom: 20px; gap: 0; }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .step-number { width: 32px; height: 32px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: var(--text); }
+  .step.active .step-number { background: var(--brand); color: white; }
+  .step-divider { flex: 1; height: 2px; background: #e0e0e0; margin: 0 -8px; }
+  .step-label { font-size: 11px; color: var(--muted); text-align: center; max-width: 60px; }
 
-        .output-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #333;
-        }
+  /* Phase 3-B: 도움말 아이콘 */
+  .help-icon { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; background: #ddd; color: #666; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; cursor: help; margin-left: 4px; transition: all 0.2s; }
+  .help-icon:hover { background: var(--brand); color: white; }
 
-        .output-value.price {
-            color: #e74c3c;
-        }
+  /* Phase 3-B: 아이콘 라벨 */
+  .field label { display: flex; align-items: center; gap: 4px; }
+  .icon { font-size: 16px; }
 
-        .size-grade {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin-top: 4px;
-        }
+  .addr-manage-btn { padding: 9px 12px; background: #f0f6ff; border: 1px solid var(--brand); border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--brand); font-weight: 600; margin-top: 6px; width: 100%; }
+  .addr-manage-btn:active { background: #e0ecff; }
 
-        .warning {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 6px;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            color: #856404;
-            font-size: 14px;
-        }
+  #addressBookModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+  #addressBookModal.active { display: flex; align-items: center; justify-content: center; }
+  .addr-modal-content { background: #fff; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; max-height: 70vh; overflow-y: auto; }
+  .addr-modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+  .addr-modal-close { float: right; font-size: 24px; cursor: pointer; color: var(--muted); margin-top: -10px; }
+  .addr-list { list-style: none; padding: 0; margin: 0; }
+  .addr-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); }
+  .addr-list-item:last-child { border-bottom: none; }
+  .addr-list-item-text { font-size: 13px; flex: 1; }
+  .addr-delete-btn { padding: 4px 8px; background: #fbeceb; border: 1px solid #eab6b0; border-radius: 4px; color: #c0392b; cursor: pointer; font-size: 12px; font-weight: 600; }
+  .addr-modal-buttons { margin-top: 20px; display: flex; gap: 10px; }
+  .addr-clear-btn { flex: 1; padding: 12px; background: #fbeceb; border: 1px solid #eab6b0; border-radius: 8px; color: #c0392b; cursor: pointer; font-weight: 600; }
+  .addr-close-btn { flex: 1; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; }
 
-        .error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            border-radius: 6px;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            color: #721c24;
-            font-size: 14px;
-        }
-
-        .success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            border-radius: 6px;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            color: #155724;
-            font-size: 14px;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 30px;
-        }
-
-        button {
-            flex: 1;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-submit {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-submit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-reset {
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        .btn-reset:hover {
-            background: #e0e0e0;
-        }
-
-        .info-box {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            font-size: 13px;
-            color: #1565c0;
-        }
-
-        .forbidden-list {
-            background: #f5f5f5;
-            border-radius: 6px;
-            padding: 12px;
-            margin-top: 10px;
-            font-size: 12px;
-        }
-
-        .forbidden-list ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .forbidden-list li {
-            padding: 4px 0;
-        }
-
-        .forbidden-list strong {
-            color: #e74c3c;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 13px;
-        }
-
-        th {
-            background: #f5f5f5;
-            padding: 10px;
-            text-align: left;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 1px solid #ddd;
-        }
-
-        td {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        tr:hover {
-            background: #f9f9f9;
-        }
-
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .dimensions-group {
-                grid-template-columns: 1fr;
-            }
-
-            .output-row {
-                grid-template-columns: 1fr;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
-        }
-    </style>
+  .shipping-option-stats { margin-top: 30px; }
+  .shipping-stat-row { display: grid; grid-template-columns: 120px 60px 60px 100px 100px; gap: 10px; padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .shipping-stat-row.header { background: #eef2f6; font-weight: 700; }
+  .shipping-stat-row.total { background: #f6f8fa; font-weight: 700; }
+  .shipping-chart { margin-top: 20px; }
+  .chart-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 12px; }
+  .chart-label { width: 80px; }
+  .chart-visual { flex: 1; font-family: monospace; letter-spacing: -2px; }
+  .chart-percent { width: 40px; text-align: right; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>두두택배 접수 시스템</h1>
-            <p>배송 요금과 도착 예정일이 자동으로 계산됩니다</p>
+<div class="page">
+  <div class="topbar">
+    <div class="brand">두두택배 접수</div>
+    <div class="sub">한장완성판 - 규정 전 조항 반영 / 계산 과정 실시간 표시</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('reception')">접수</button>
+    <button class="tab-btn" onclick="switchTab('list')">목록 및 조회</button>
+    <button class="tab-btn" onclick="switchTab('stats')">통계</button>
+  </div>
+
+  <div class="tab-content active" id="tab-reception">
+  <!-- Phase 3-B: Step Indicator -->
+  <div style="background: white; border: 1px solid var(--border); border-bottom: none; border-radius: 14px 14px 0 0; padding: 20px; margin-bottom: 0;">
+    <div class="progress-bar">
+      <div class="step active">
+        <div class="step-number">1</div>
+        <div class="step-label">기본정보</div>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-label">계산</div>
+      </div>
+      <div class="step-divider"></div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-label">완료</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <section class="form-panel">
+      <h2>접수 정보 입력</h2>
+      <div class="field-grid">
+        <div class="field">
+          <label for="branch"><span class="icon">🏢</span>접수 지점 <span class="req">필수</span></label>
+          <input type="text" id="branch" oninput="recalc()" placeholder="서울지점" autocomplete="off">
+          <p class="hint">등록된 지점: 서울지점, 용산지점, 대전지점, 진주지점, 거제지점, 울산지점. 목록에 없는 이름을 적으면 운송장 앞자리가 00으로 나갑니다.</p>
+        </div>
+        <div class="field">
+          <label for="receiverArea"><span class="icon">🌍</span>도착 지역 <span class="req">필수</span></label>
+          <input type="text" id="receiverArea" oninput="recalc()" placeholder="서울" autocomplete="off">
+          <p class="hint">제주는 제주 권역, 울릉도·백령도·흑산도·거문도·추자도는 도서산간, 나머지는 전부 일반입니다. 거제와 진주도 일반입니다.</p>
         </div>
 
-        <div class="content">
-            <!-- 경고 메시지 -->
-            <div id="alertBox" class="hidden"></div>
-
-            <!-- 송수신자 정보 -->
-            <div class="form-section">
-                <div class="section-title">송수신자 정보</div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="senderName" class="required">보내는 분 이름</label>
-                        <input type="text" id="senderName" placeholder="예: 김민준">
-                    </div>
-                    <div class="form-group">
-                        <label for="senderPhone">보내는 분 전화</label>
-                        <input type="tel" id="senderPhone" placeholder="예: 010-1234-5678">
-                    </div>
-                    <div class="form-group">
-                        <label for="receiverName" class="required">받는 분 이름</label>
-                        <input type="text" id="receiverName" placeholder="예: 이서연">
-                    </div>
-                    <div class="form-group">
-                        <label for="receiverPhone" class="required">받는 분 전화</label>
-                        <input type="tel" id="receiverPhone" placeholder="예: 010-1234-5678">
-                    </div>
-                </div>
+        <div class="field">
+          <label for="senderName"><span class="icon">👤</span>보내는 분 이름 <span class="req">필수</span></label>
+          <input type="text" id="senderName" placeholder="예: 김민준" oninput="recalc()">
+          <div class="address-book">
+            <div class="addr-dropdown">
+              <select id="addressBookSelect" onchange="applyQuickAddress()">
+                <option value="">자주 쓰는 주소 선택...</option>
+              </select>
             </div>
-
-            <!-- 배송지 정보 -->
-            <div class="form-section">
-                <div class="section-title">배송 정보</div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="branchCode" class="required">접수 지점</label>
-                        <select id="branchCode">
-                            <option value="">- 선택하세요 -</option>
-                            <option value="11">11. 서울지점 (서울)</option>
-                            <option value="12">12. 용산지점 (서울 용산)</option>
-                            <option value="21">21. 대전지점 (대전)</option>
-                            <option value="31">31. 진주지점 (경남 진주)</option>
-                            <option value="32">32. 거제지점 (경남 거제)</option>
-                            <option value="41">41. 울산지점 (울산)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="receiverArea" class="required">도착 시·도</label>
-                        <select id="receiverArea">
-                            <option value="">- 선택하세요 -</option>
-                            <option value="서울">서울</option>
-                            <option value="인천">인천</option>
-                            <option value="경기">경기</option>
-                            <option value="강원">강원</option>
-                            <option value="충북">충북</option>
-                            <option value="충남">충남</option>
-                            <option value="대전">대전</option>
-                            <option value="세종">세종</option>
-                            <option value="전북">전북</option>
-                            <option value="전남">전남</option>
-                            <option value="광주">광주</option>
-                            <option value="경북">경북</option>
-                            <option value="경남">경남</option>
-                            <option value="대구">대구</option>
-                            <option value="울산">울산</option>
-                            <option value="부산">부산</option>
-                            <option value="제주">제주</option>
-                            <option value="도서산간">도서산간 (울릉도, 백령도 등)</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 물품 정보 -->
-            <div class="form-section">
-                <div class="section-title">물품 정보</div>
-                <div class="form-grid">
-                    <div class="form-group full">
-                        <label for="itemName" class="required">물품명</label>
-                        <input type="text" id="itemName" placeholder="예: 이불, 쌀, 책">
-                    </div>
-                    <div class="form-group">
-                        <label for="weight" class="required">무게 (kg)</label>
-                        <input type="number" id="weight" placeholder="예: 3" step="0.1" min="0">
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="form-group full">
-                        <label class="required">크기 (cm)</label>
-                        <div class="dimensions-group">
-                            <div>
-                                <input type="number" id="width" placeholder="가로" step="0.1" min="0">
-                                <div class="dimension-label">가로 (width)</div>
-                            </div>
-                            <div>
-                                <input type="number" id="height" placeholder="세로" step="0.1" min="0">
-                                <div class="dimension-label">세로 (height)</div>
-                            </div>
-                            <div>
-                                <input type="number" id="depth" placeholder="높이" step="0.1" min="0">
-                                <div class="dimension-label">높이 (depth)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="info-box">
-                    ℹ️ <strong>세 변의 합 = 가로 + 세로 + 높이</strong> | <strong>부피 무게 = (가로 × 세로 × 높이) ÷ 6000</strong>
-                </div>
-            </div>
-
-            <!-- 금지 품목 안내 -->
-            <div class="form-section">
-                <div class="section-title">금지 품목 확인</div>
-                <div class="forbidden-list">
-                    <ul>
-                        <li><strong>금전:</strong> 현금, 상품권, 유가증권</li>
-                        <li><strong>귀중품:</strong> 금, 은, 보석, 시계(50만원 초과)</li>
-                        <li><strong>인화성:</strong> 라이터, 부탄가스, 페인트, 신나, 알코올 스프레이</li>
-                        <li><strong>배터리:</strong> 보조배터리, 리튬배터리 단품</li>
-                        <li><strong>생물:</strong> 살아있는 동물, 살아있는 식물</li>
-                        <li><strong>온도:</strong> 냉장·냉동이 필요한 식품</li>
-                        <li><strong>기타:</strong> 주류, 의약품, 총포·도검</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- 계산 결과 -->
-            <div class="form-section">
-                <div class="section-title">계산 결과</div>
-                <div class="output-section">
-                    <div class="output-row">
-                        <div class="output-item">
-                            <div class="output-label">세 변의 합</div>
-                            <div class="output-value" id="outputSum">0<span style="font-size: 14px; color: #999;">cm</span></div>
-                        </div>
-                        <div class="output-item">
-                            <div class="output-label">부피 무게</div>
-                            <div class="output-value" id="outputVolumeWeight">0<span style="font-size: 14px; color: #999;">kg</span></div>
-                        </div>
-                        <div class="output-item">
-                            <div class="output-label">요금 무게</div>
-                            <div class="output-value" id="outputBilledWeight">0<span style="font-size: 14px; color: #999;">kg</span></div>
-                        </div>
-                    </div>
-
-                    <div class="output-row">
-                        <div class="output-item">
-                            <div class="output-label">크기 등급</div>
-                            <div class="output-value">
-                                <span id="outputSizeGrade" class="size-grade">-</span>
-                            </div>
-                        </div>
-                        <div class="output-item">
-                            <div class="output-label">권역</div>
-                            <div class="output-value" id="outputRegion" style="font-size: 16px;">-</div>
-                        </div>
-                    </div>
-
-                    <div class="output-row">
-                        <div class="output-item">
-                            <div class="output-label">배송 요금</div>
-                            <div class="output-value price" id="outputPrice">0<span style="font-size: 14px;">원</span></div>
-                        </div>
-                        <div class="output-item">
-                            <div class="output-label">도착 예정일</div>
-                            <div class="output-value" id="outputETA" style="font-size: 16px;">-</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 요금표 참고 -->
-                <div class="info-box" style="margin-top: 20px;">
-                    <strong>요금표 (참고용)</strong>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>크기 등급</th>
-                            <th>세 변의 합</th>
-                            <th>무게</th>
-                            <th>일반</th>
-                            <th>제주</th>
-                            <th>도서산간</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>극소형</strong></td>
-                            <td>60cm 이하</td>
-                            <td>2kg 이하</td>
-                            <td>3,500원</td>
-                            <td>6,500원</td>
-                            <td>8,500원</td>
-                        </tr>
-                        <tr>
-                            <td><strong>소형</strong></td>
-                            <td>80cm 이하</td>
-                            <td>5kg 이하</td>
-                            <td>4,000원</td>
-                            <td>7,000원</td>
-                            <td>9,000원</td>
-                        </tr>
-                        <tr>
-                            <td><strong>중형</strong></td>
-                            <td>120cm 이하</td>
-                            <td>15kg 이하</td>
-                            <td>6,000원</td>
-                            <td>9,000원</td>
-                            <td>11,000원</td>
-                        </tr>
-                        <tr>
-                            <td><strong>대형</strong></td>
-                            <td>160cm 이하</td>
-                            <td>25kg 이하</td>
-                            <td>9,000원</td>
-                            <td>12,000원</td>
-                            <td>14,000원</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- 버튼 -->
-            <div class="button-group">
-                <button type="submit" class="btn-submit" id="submitBtn">접수 완료</button>
-                <button type="reset" class="btn-reset" id="resetBtn">초기화</button>
-            </div>
+            <button type="button" class="addr-btn" onclick="saveToAddressBook()">저장</button>
+          </div>
+          <button type="button" class="addr-manage-btn" onclick="openAddressBookModal()">📋 주소록 관리</button>
         </div>
+        <div class="field">
+          <label for="receiverName"><span class="icon">👨‍👩‍👧</span>받는 분 이름 <span class="req">필수</span></label>
+          <input type="text" id="receiverName" placeholder="예: 이서연" oninput="recalc()">
+        </div>
+
+        <div class="field wide">
+          <div class="field-note">
+            ※ 접수 지점은 규정 §7의 6대 필수 입력에는 없지만, §9 운송장 번호
+            형식(앞 2자리 = 접수 지점 코드)에 필요해 이 화면에 추가했다.
+          </div>
+        </div>
+
+        <div class="field wide">
+          <label><span class="icon">🚚</span>배송 옵션 <span class="help-icon" title="각 옵션은 기본 요금에 추가 비용이 발생합니다">?</span><span class="req">필수</span></label>
+          <div class="shipping-options">
+            <div class="option-card selected" id="opt-standard" onclick="selectShippingOption('standard', event)">
+              <label><input type="radio" name="shippingOption" value="standard" checked onchange="recalc()"> 스탠다드</label>
+              <div class="option-price">규정 도착일</div>
+            </div>
+            <div class="option-card" id="opt-express" onclick="selectShippingOption('express', event)">
+              <label><input type="radio" name="shippingOption" value="express" onchange="recalc()"> 익스프레스</label>
+              <div class="option-price">+1일 빠름, +20%</div>
+            </div>
+            <div class="option-card" id="opt-overnight" onclick="selectShippingOption('overnight', event)">
+              <label><input type="radio" name="shippingOption" value="overnight" onchange="recalc()"> 나이트</label>
+              <div class="option-price">다음날, +50%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field wide">
+          <label for="itemName"><span class="icon">📦</span>물품명 <span class="req">필수</span></label>
+          <input type="text" id="itemName" placeholder="예: 이불" oninput="recalc()">
+          <div class="inline-warning" id="bannedWarning"></div>
+        </div>
+
+        <div class="field">
+          <label for="weightKg"><span class="icon">⚖️</span>실제 무게 (kg) <span class="req">필수</span></label>
+          <input type="number" id="weightKg" placeholder="예: 3.0" step="any" oninput="recalc()">
+        </div>
+        <div class="field"></div>
+
+        <div class="field dims">
+          <label><span class="icon">📏</span>가로 x 세로 x 높이 (cm) <span class="req">필수</span></label>
+          <div class="row3">
+            <input type="number" id="widthCm" placeholder="가로" step="any" oninput="recalc()">
+            <input type="number" id="heightCm" placeholder="세로" step="any" oninput="recalc()">
+            <input type="number" id="depthCm" placeholder="높이" step="any" oninput="recalc()">
+          </div>
+        </div>
+      </div>
+
+      <div class="soft-confirm" id="softConfirmBox" style="display:none">
+        <div id="softConfirmText"></div>
+        <label><input type="checkbox" id="staffConfirm" onchange="recalc()"> 직원이 확인했습니다 (50만원 이하)</label>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="btn-row">
+        <button type="button" class="reset-btn" onclick="resetForm()">새로 입력</button>
+        <button type="button" class="submit-btn" id="submitBtn" disabled onclick="submitShipment()">접수 완료</button>
+      </div>
+    </section>
+
+    <section class="calc-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h2 style="margin: 0;">계산 과정</h2>
+        <button type="button" id="toggleCalcBtn" onclick="toggleCalcDetails()" style="padding: 6px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">상세보기 ▼</button>
+      </div>
+
+      <!-- Phase 3-A: 간소화 모드 -->
+      <div id="calcSummary" style="display: block;">
+        <div style="background: var(--ok-bg); padding: 16px; border-radius: 8px; border: 1px solid var(--ok-border);">
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;"><span>크기등급:</span> <strong id="summaryGrade">-</strong></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;"><span>배송옵션:</span> <strong id="summaryOption">-</strong></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;"><span>예상 요금:</span> <strong id="summaryPrice">-</strong></div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px;"><span>도착예정:</span> <strong id="summaryEta">-</strong></div>
+        </div>
+      </div>
+
+      <!-- Phase 3-A: 상세 모드 -->
+      <div id="calcDetails" style="display: none;">
+        <div id="calcSteps">
+          <div class="calc-pending">무게・가로・세로・높이를 모두 입력하면 계산 과정이 여기 순서대로 표시됩니다.</div>
+        </div>
+
+        <h3>요금표 - 4등급 x 3권역 12종 전부 (규정 §3)</h3>
+        <table class="rate-table" id="rateTable">
+          <thead><tr><th>등급</th><th>기준(세변합 / 무게)</th><th>일반</th><th>제주</th><th>도서산간</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="receipt-section" id="receiptSection" style="display:none"></div>
+  </div>
+
+  <div class="tab-content" id="tab-list">
+    <h2>접수 목록 및 조회</h2>
+    <div class="list-controls">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="운송장번호, 이름, 물품명 검색..." oninput="filterList()">
+      </div>
+      <button class="filter-btn active" onclick="setFilterBranch('all')">전체</button>
+      <button class="filter-btn" onclick="setFilterBranch('11')">서울</button>
+      <button class="filter-btn" onclick="setFilterBranch('12')">용산</button>
+      <button class="filter-btn" onclick="setFilterBranch('21')">대전</button>
+      <button class="filter-btn" onclick="setFilterBranch('31')">진주</button>
+      <button class="filter-btn" onclick="setFilterBranch('32')">거제</button>
+      <button class="filter-btn" onclick="setFilterBranch('41')">울산</button>
+    </div>
+    <div class="list-section">
+      <table>
+        <thead>
+          <tr>
+            <th>운송장</th><th>지점</th><th>보내는분</th><th>받는분</th><th>도착지역</th>
+            <th>권역</th><th>물품</th><th>요금무게</th><th>등급</th><th>배송옵션</th><th>요금</th><th>도착예정</th><th style="width:70px">작업</th>
+          </tr>
+        </thead>
+        <tbody id="listBody"><tr class="empty-row"><td colspan="12">아직 접수 내역이 없습니다</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-stats">
+    <h2>통계 대시보드</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">전체 접수</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-detail" id="statTotalDetail"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">총 요금</div>
+        <div class="stat-value" id="statRevenue">0원</div>
+        <div class="stat-detail" id="statRevenueDetail"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">평균 요금</div>
+        <div class="stat-value" id="statAvgPrice">0원</div>
+        <div class="stat-detail">건당 평균</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">접수 거절</div>
+        <div class="stat-value" id="statRejected">0</div>
+        <div class="stat-detail">금지품목 또는 한도초과</div>
+      </div>
     </div>
 
-    <script>
-        // 지역별 권역 매핑
-        const areaToRegion = {
-            '제주': 'jeju',
-            '도서산간': 'island',
-            // 나머지는 모두 일반
-        };
+    <h3>지점별 통계</h3>
+    <table style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #eef2f6;">
+          <th style="border: 1px solid var(--border); padding: 8px;">지점</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">건수</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">총 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">평균 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">가장 많은 권역</th>
+        </tr>
+      </thead>
+      <tbody id="statsByBranch">
+        <tr style="text-align: center; color: var(--muted);"><td colspan="5" style="padding: 14px;">데이터 없음</td></tr>
+      </tbody>
+    </table>
 
-        // 영업일 계산 (토요일, 일요일 제외)
-        function getBusinessDays(startDate, days) {
-            const date = new Date(startDate);
-            let count = 0;
+    <h3 style="margin-top: 20px;">권역별 통계</h3>
+    <table style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #eef2f6;">
+          <th style="border: 1px solid var(--border); padding: 8px;">권역</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">건수</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">총 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">평균 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">가장 많은 등급</th>
+        </tr>
+      </thead>
+      <tbody id="statsByRegion">
+        <tr style="text-align: center; color: var(--muted);"><td colspan="5" style="padding: 14px;">데이터 없음</td></tr>
+      </tbody>
+    </table>
 
-            while (count < days) {
-                date.setDate(date.getDate() + 1);
-                const dayOfWeek = date.getDay();
-                if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0=일요일, 6=토요일
-                    count++;
-                }
-            }
+    <h3 style="margin-top: 20px;">크기 등급별 통계</h3>
+    <table style="width:100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #eef2f6;">
+          <th style="border: 1px solid var(--border); padding: 8px;">등급</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">건수</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">비율</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">총 요금</th>
+          <th style="border: 1px solid var(--border); padding: 8px;">평균 요금</th>
+        </tr>
+      </thead>
+      <tbody id="statsByGrade">
+        <tr style="text-align: center; color: var(--muted);"><td colspan="5" style="padding: 14px;">데이터 없음</td></tr>
+      </tbody>
+    </table>
 
-            return date;
-        }
+    <h3 style="margin-top: 20px;">배송옵션별 통계</h3>
+    <div class="shipping-option-stats">
+      <div class="shipping-stat-row header">
+        <div style="font-weight: 700;">배송옵션</div>
+        <div style="text-align: center; font-weight: 700;">건수</div>
+        <div style="text-align: center; font-weight: 700;">비율</div>
+        <div style="text-align: right; font-weight: 700;">총 요금</div>
+        <div style="text-align: right; font-weight: 700;">평균 요금</div>
+      </div>
+      <div id="statsByShippingOption"></div>
+      <div class="shipping-stat-row total">
+        <div style="font-weight: 700;">합계</div>
+        <div id="shippingTotalCount" style="text-align: center;">0</div>
+        <div style="text-align: center;">100%</div>
+        <div id="shippingTotalPrice" style="text-align: right;">0원</div>
+        <div id="shippingAvgPrice" style="text-align: right;">0원</div>
+      </div>
+    </div>
 
-        // 요금표
-        const priceTable = {
-            'xs': { // 극소형: 세 변 60cm 이하, 무게 2kg 이하
-                general: 3500,
-                jeju: 6500,
-                island: 8500
-            },
-            's': { // 소형: 세 변 80cm 이하, 무게 5kg 이하
-                general: 4000,
-                jeju: 7000,
-                island: 9000
-            },
-            'm': { // 중형: 세 변 120cm 이하, 무게 15kg 이하
-                general: 6000,
-                jeju: 9000,
-                island: 11000
-            },
-            'l': { // 대형: 세 변 160cm 이하, 무게 25kg 이하
-                general: 9000,
-                jeju: 12000,
-                island: 14000
-            }
-        };
+    <h3 style="margin-top: 20px;">배송옵션별 비율</h3>
+    <div class="shipping-chart" id="shippingChart"></div>
+  </div>
 
-        // 크기 등급 계산
-        function calculateSizeGrade(sum, weight) {
-            if (sum > 160 || weight > 25) {
-                return { grade: 'reject', label: '접수 불가' };
-            }
-            if (sum <= 60 && weight <= 2) {
-                return { grade: 'xs', label: '극소형' };
-            }
-            if (sum <= 80 && weight <= 5) {
-                return { grade: 's', label: '소형' };
-            }
-            if (sum <= 120 && weight <= 15) {
-                return { grade: 'm', label: '중형' };
-            }
-            if (sum <= 160 && weight <= 25) {
-                return { grade: 'l', label: '대형' };
-            }
-            return { grade: 'reject', label: '접수 불가' };
-        }
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeEditModal()">&times;</span>
+      <div class="modal-title">접수 상세 및 수정</div>
+      <form id="editForm" style="margin-top: 20px;">
+        <div class="modal-row">
+          <div><div class="modal-label">운송장</div><div class="modal-value" id="editTrackingNo"></div></div>
+          <div><div class="modal-label">지점</div><div class="modal-value" id="editBranch"></div></div>
+        </div>
+        <div class="modal-row">
+          <div><label class="modal-label">보내는 분 이름</label><input type="text" id="editSender" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;"></div>
+          <div><label class="modal-label">받는 분 이름</label><input type="text" id="editReceiver" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;"></div>
+        </div>
+        <div class="modal-row full">
+          <label class="modal-label">물품명</label><input type="text" id="editItem" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;">
+        </div>
+        <div class="modal-row">
+          <div><div class="modal-label">도착 지역</div><div class="modal-value" id="editArea"></div></div>
+          <div><div class="modal-label">권역</div><div class="modal-value" id="editRegion"></div></div>
+        </div>
+        <div class="modal-row">
+          <div><div class="modal-label">실제 무게</div><div class="modal-value" id="editWeight"></div></div>
+          <div><div class="modal-label">요금 무게</div><div class="modal-value" id="editBilledWeight"></div></div>
+        </div>
+        <div class="modal-row">
+          <div><div class="modal-label">크기 등급</div><div class="modal-value" id="editGrade"></div></div>
+          <div><div class="modal-label">배송 옵션</div><div class="modal-value" id="editShippingOption"></div></div>
+        </div>
+        <div class="modal-row">
+          <div><div class="modal-label">기본 요금</div><div class="modal-value" id="editBasePrice"></div></div>
+          <div><div class="modal-label">최종 요금</div><div class="modal-value" id="editPrice"></div></div>
+        </div>
+        <div class="modal-row full">
+          <div><div class="modal-label">도착 예정일</div><div class="modal-value" id="editETA"></div></div>
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+          <button type="button" onclick="deleteShipment()" style="flex:1; padding:12px; background: #fbeceb; border: 1px solid #eab6b0; border-radius:8px; color:#c0392b; font-weight:600; cursor:pointer;">취소하기</button>
+          <button type="button" onclick="closeEditModal()" style="flex:1; padding:12px; background: #fff; border: 1px solid var(--border); border-radius:8px; cursor:pointer;">닫기</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        // 금지 품목 검사
-        function checkForbiddenItems(itemName) {
-            const forbiddenPatterns = [
-                /현금|상품권|유가증권/,
-                /금|은|보석|시계/,
-                /라이터|부탄가스|페인트|신나|알코올\s?스프레이/,
-                /보조배터리|리튬배터리/,
-                /동물|식물/,
-                /냉장|냉동|식품/,
-                /주류|의약품|총포|도검/
-            ];
+  <div id="addressBookModal" class="modal">
+    <div class="addr-modal-content">
+      <span class="addr-modal-close" onclick="closeAddressBookModal()">&times;</span>
+      <div class="addr-modal-title">📋 주소록 관리</div>
+      <div style="margin-top: 20px;">
+        <div style="font-size: 12px; color: var(--muted); margin-bottom: 14px;">저장된 주소 (<span id="addrCount">0</span>/20)</div>
+        <ul class="addr-list" id="addressBookList"></ul>
+      </div>
+      <div class="addr-modal-buttons">
+        <button type="button" class="addr-clear-btn" onclick="clearAllAddressBook()">모두 삭제</button>
+        <button type="button" class="addr-close-btn" onclick="closeAddressBookModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-            for (const pattern of forbiddenPatterns) {
-                if (pattern.test(itemName)) {
-                    return true;
-                }
-            }
-            return false;
-        }
+<script>
+  // ============================================================
+  // 주소록 관리
+  // ============================================================
+  let addressBook = [];
 
-        // 입력값 변경 감지
-        function setupEventListeners() {
-            const inputs = ['weight', 'width', 'height', 'depth', 'receiverArea', 'itemName'];
-            inputs.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.addEventListener('change', calculate);
-                    element.addEventListener('input', calculate);
-                }
-            });
+  function initAddressBook() {
+    const saved = localStorage.getItem('dudu_addressBook');
+    addressBook = saved ? JSON.parse(saved) : [];
+    updateAddressBookUI();
+  }
 
-            document.getElementById('resetBtn').addEventListener('click', resetForm);
-            document.getElementById('submitBtn').addEventListener('click', handleSubmit);
-        }
+  function updateAddressBookUI() {
+    const select = document.getElementById('addressBookSelect');
+    select.innerHTML = '<option value="">자주 쓰는 주소 선택...</option>';
+    addressBook.forEach((addr, idx) => {
+      const opt = document.createElement('option');
+      opt.value = idx;
+      opt.textContent = `${addr.senderName} → ${addr.receiverArea}`;
+      select.appendChild(opt);
+    });
+  }
 
-        // 메시지 표시
-        function showAlert(message, type = 'warning') {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.className = type;
-            alertBox.textContent = message;
-            alertBox.classList.remove('hidden');
+  function saveToAddressBook() {
+    const senderName = document.getElementById('senderName').value.trim();
+    const receiverArea = document.getElementById('receiverArea').value.trim();
+    if (!senderName || !receiverArea) {
+      alert('보내는 분 이름과 도착 지역을 입력하세요.');
+      return;
+    }
+    const exists = addressBook.findIndex(a => a.senderName === senderName && a.receiverArea === receiverArea);
+    if (exists >= 0) {
+      addressBook.splice(exists, 1);
+    }
+    addressBook.unshift({ senderName, receiverArea });
+    if (addressBook.length > 5) addressBook.pop();
+    localStorage.setItem('dudu_addressBook', JSON.stringify(addressBook));
+    updateAddressBookUI();
+    alert(`저장됐습니다: ${senderName} → ${receiverArea}`);
+  }
 
-            // 5초 후 자동 숨김
-            setTimeout(() => {
-                alertBox.classList.add('hidden');
-            }, 5000);
-        }
+  function applyQuickAddress() {
+    const select = document.getElementById('addressBookSelect');
+    const idx = parseInt(select.value);
+    if (isNaN(idx)) return;
+    const addr = addressBook[idx];
+    document.getElementById('senderName').value = addr.senderName;
+    document.getElementById('receiverArea').value = addr.receiverArea;
+    select.value = '';
+    recalc();
+  }
 
-        // 계산 실행
-        function calculate() {
-            const weight = parseFloat(document.getElementById('weight').value) || 0;
-            const width = parseFloat(document.getElementById('width').value) || 0;
-            const height = parseFloat(document.getElementById('height').value) || 0;
-            const depth = parseFloat(document.getElementById('depth').value) || 0;
-            const receiverArea = document.getElementById('receiverArea').value;
-            const itemName = document.getElementById('itemName').value;
+  function openAddressBookModal() {
+    const list = document.getElementById('addressBookList');
+    const count = document.getElementById('addrCount');
+    count.textContent = addressBook.length;
+    if (addressBook.length === 0) {
+      list.innerHTML = '<li style="padding: 20px; text-align: center; color: var(--muted);">저장된 주소가 없습니다</li>';
+    } else {
+      list.innerHTML = addressBook.map((addr, idx) => `
+        <li class="addr-list-item">
+          <div class="addr-list-item-text">${idx + 1}. ${addr.senderName} → ${addr.receiverArea}</div>
+          <button class="addr-delete-btn" onclick="deleteFromAddressBook(${idx})">삭제</button>
+        </li>
+      `).join('');
+    }
+    document.getElementById('addressBookModal').classList.add('active');
+  }
 
-            // 경고 초기화
-            document.getElementById('alertBox').classList.add('hidden');
+  function closeAddressBookModal() {
+    document.getElementById('addressBookModal').classList.remove('active');
+  }
 
-            // 필수 입력값 확인
-            if (!weight || !width || !height || !depth || !receiverArea || !itemName) {
-                return; // 모든 값이 입력될 때까지 계산 중단
-            }
+  function deleteFromAddressBook(idx) {
+    if (confirm('이 주소를 삭제하시겠습니까?')) {
+      addressBook.splice(idx, 1);
+      localStorage.setItem('dudu_addressBook', JSON.stringify(addressBook));
+      updateAddressBookUI();
+      openAddressBookModal();
+    }
+  }
 
-            // 금지 품목 검사
-            if (checkForbiddenItems(itemName)) {
-                showAlert('❌ 접수 불가: 금지 품목입니다. 접수할 수 없습니다.', 'error');
-                resetOutput();
-                return;
-            }
+  function clearAllAddressBook() {
+    if (confirm('저장된 주소를 모두 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+      addressBook = [];
+      localStorage.setItem('dudu_addressBook', JSON.stringify(addressBook));
+      updateAddressBookUI();
+      closeAddressBookModal();
+      alert('모든 주소가 삭제되었습니다');
+    }
+  }
 
-            // 세 변의 합
-            const sum = width + height + depth;
+  // ============================================================
+  // 배송 옵션 관리
+  // ============================================================
+  function selectShippingOption(option, event) {
+    event?.preventDefault?.();
+    document.querySelectorAll('.option-card').forEach(el => el.classList.remove('selected'));
+    document.getElementById(`opt-${option}`).classList.add('selected');
+    document.querySelector(`input[value="${option}"]`).checked = true;
+    recalc();
+  }
 
-            // 부피 무게
-            const volumeWeight = (width * height * depth) / 6000;
+  function getShippingOptionLabel(option) {
+    const labels = { standard: '스탠다드', express: '익스프레스', overnight: '나이트' };
+    return labels[option] || '스탠다드';
+  }
 
-            // 요금 무게
-            const billedWeight = Math.max(weight, volumeWeight);
+  function getShippingOptionMultiplier(option) {
+    const multipliers = { standard: 1.0, express: 1.2, overnight: 1.5 };
+    return multipliers[option] || 1.0;
+  }
 
-            // 크기 등급
-            const sizeGradeInfo = calculateSizeGrade(sum, billedWeight);
+  function getShippingOptionDayOffset(option) {
+    const offsets = { standard: 0, express: -1, overnight: -2 };
+    return offsets[option] || 0;
+  }
 
-            if (sizeGradeInfo.grade === 'reject') {
-                showAlert('❌ 접수 불가: 크기 또는 무게 초과입니다.', 'error');
-                resetOutput();
-                return;
-            }
+  // Phase 3-C: 운송장 번호 복사
+  function copyTrackingNo(trackingNo, event) {
+    event?.stopPropagation?.();
+    navigator.clipboard.writeText(trackingNo).then(() => {
+      const cell = event?.target;
+      if (cell) {
+        const original = cell.textContent;
+        cell.textContent = '✓ 복사됨!';
+        cell.classList.add('copied');
+        setTimeout(() => {
+          cell.textContent = original;
+          cell.classList.remove('copied');
+        }, 2000);
+      }
+    });
+  }
 
-            // 권역 결정
-            const region = areaToRegion[receiverArea] || 'general';
+  // Phase 3-A: 계산 과정 간소화/상세 토글
+  let calcDetailsExpanded = false;
+  function toggleCalcDetails() {
+    calcDetailsExpanded = !calcDetailsExpanded;
+    const summary = document.getElementById('calcSummary');
+    const details = document.getElementById('calcDetails');
+    const btn = document.getElementById('toggleCalcBtn');
+    if (calcDetailsExpanded) {
+      summary.style.display = 'none';
+      details.style.display = 'block';
+      btn.textContent = '간소화 ▲';
+    } else {
+      summary.style.display = 'block';
+      details.style.display = 'none';
+      btn.textContent = '상세보기 ▼';
+    }
+  }
 
-            // 요금 계산
-            const price = priceTable[sizeGradeInfo.grade][region];
+  // ============================================================
+  // 탭 관리
+  // ============================================================
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tabName).classList.add('active');
+    event.target.classList.add('active');
+    if (tabName === 'stats') updateStats();
+  }
 
-            // 도착 예정일 계산
-            let daysToAdd = 1; // 기본: 다음 영업일
-            if (region === 'jeju') {
-                daysToAdd = 2;
-            } else if (region === 'island') {
-                daysToAdd = 3;
-            }
+  // ============================================================
+  // 계산 정본 - 02_접수규정.md §1-9를 그대로 옮겼다. 이 블록만 떼어
+  // setup.sql 샘플 5건과 대조하면 규정과 일치하는지 검산할 수 있다.
+  // ============================================================
+  const BRANCHES = [
+    { code: '11', name: '서울지점' }, { code: '12', name: '용산지점' },
+    { code: '21', name: '대전지점' }, { code: '31', name: '진주지점' },
+    { code: '32', name: '거제지점' }, { code: '41', name: '울산지점' },
+  ];
 
-            const today = new Date();
-            const etaDate = getBusinessDays(today, daysToAdd);
-            const etaString = etaDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+  const RATE_TABLE = [
+    { grade: '극소형', maxSum: 60,  maxWeight: 2,  price: { 일반: 3500, 제주: 6500,  도서산간: 8500 } },
+    { grade: '소형',   maxSum: 80,  maxWeight: 5,  price: { 일반: 4000, 제주: 7000,  도서산간: 9000 } },
+    { grade: '중형',   maxSum: 120, maxWeight: 15, price: { 일반: 6000, 제주: 9000,  도서산간: 11000 } },
+    { grade: '대형',   maxSum: 160, maxWeight: 25, price: { 일반: 9000, 제주: 12000, 도서산간: 14000 } },
+  ];
+  const ETA_BUSINESS_DAYS = { 일반: 1, 제주: 2, 도서산간: 3 };
 
-            // 결과 출력
-            document.getElementById('outputSum').textContent = Math.round(sum) + 'cm';
-            document.getElementById('outputVolumeWeight').textContent = volumeWeight.toFixed(1) + 'kg';
-            document.getElementById('outputBilledWeight').textContent = billedWeight.toFixed(1) + 'kg';
-            document.getElementById('outputSizeGrade').textContent = sizeGradeInfo.label;
+  // 규정 §2 - 제주 전역만 '제주', 지정된 5개 도서만 '도서산간', 나머지는
+  // 전부 '일반'이다. 거제・진주는 다리・도로로 연결된 일반 지역이라
+  // (§2 "주의: 거제, 진주는 일반 지역입니다" 그대로) 이 두 판정 목록
+  // 어디에도 없다 - 기본값 '일반'로 자연히 떨어지는 것 자체가 그 규정을
+  // 지키는 방식이다. '원거리'・'도서' 같은 규정에 없는 이름은 이 파일
+  // 어디서도 쓰지 않는다.
+  const ISLAND_AREAS = ['울릉도', '백령도', '흑산도', '거문도', '추자도'];
+  // 260807 지점이 텍스트 입력이라 이름에서 코드를 찾는다. 목록에 없으면 00.
+  function branchCodeOf(name) {
+    const hit = BRANCHES.find(b => b.name === name);
+    return hit ? hit.code : '00';
+  }
+  function determineRegion(area) {
+    if (area === '제주') return '제주';
+    if (ISLAND_AREAS.includes(area)) return '도서산간';
+    return '일반';
+  }
 
-            const regionLabel = region === 'jeju' ? '제주' : region === 'island' ? '도서산간' : '일반';
-            document.getElementById('outputRegion').textContent = regionLabel;
+  // "하나라도 넘으면 다음 등급"(§3) - 순서대로 검사해 처음 맞는 등급을
+  // 쓴다. 넷 다 불합격이면 null(= 접수 불가, §3 "대형을 넘으면 접수
+  // 불가").
+  function determineGrade(sumCm, billedWeightKg) {
+    for (const tier of RATE_TABLE) {
+      if (sumCm <= tier.maxSum && billedWeightKg <= tier.maxWeight) return tier.grade;
+    }
+    return null;
+  }
+  function gradeTrace(sumCm, billedWeightKg) {
+    let matched = null;
+    const lines = RATE_TABLE.map(tier => {
+      const sumOk = sumCm <= tier.maxSum;
+      const wtOk = billedWeightKg <= tier.maxWeight;
+      const pass = sumOk && wtOk && !matched;
+      if (pass) matched = tier.grade;
+      return Object.assign({}, tier, { sumOk, wtOk, pass });
+    });
+    return { lines, matched };
+  }
 
-            document.getElementById('outputPrice').textContent = price.toLocaleString('ko-KR') + '원';
-            document.getElementById('outputETA').textContent = etaString;
+  function addBusinessDaysTrace(fromDate, days) {
+    const d = new Date(fromDate);
+    let added = 0;
+    const trace = [];
+    while (added < days) {
+      d.setDate(d.getDate() + 1);
+      const dow = d.getDay();
+      const isWeekend = (dow === 0 || dow === 6);
+      if (!isWeekend) added++;
+      trace.push({ date: new Date(d), dow, isWeekend, countedAt: isWeekend ? null : added });
+    }
+    return { finalDate: new Date(d), trace };
+  }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function formatDateISO(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+  const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
-            showAlert('✓ 요금과 도착 예정일이 계산되었습니다.', 'success');
-        }
+  // 규정 §5 7개 분류 21개 키워드를 부분 문자열 일치(포함 여부)로 검사한다.
+  // "시계"만 "50만원 초과" 조건이 있는데 이 화면엔 물품 가액 입력 칸이
+  // 없다(오늘 6대 필수 입력에 가격이 없다 - PRD 7절 미해결 1번과 같은
+  // 공백). 가액을 모르는 채로 그냥 통과시키면 §5 마지막 줄 "애매하면
+  // 확인 불가로 답하고 사람에게 넘깁니다"를 어기게 되므로, 시계는 자동
+  // 통과가 아니라 직원 확인 체크박스를 요구하는 소프트 차단으로 나머지
+  // 하드 차단 목록과 분리했다.
+  const BANNED_RULES = [
+    { category: '금전',   keyword: '현금' },
+    { category: '금전',   keyword: '상품권' },
+    { category: '금전',   keyword: '유가증권' },
+    { category: '귀중품', keyword: '금' },
+    { category: '귀중품', keyword: '은' },
+    { category: '귀중품', keyword: '보석' },
+    { category: '귀중품', keyword: '시계', condition: '50만원 초과 시' },
+    { category: '인화성', keyword: '라이터' },
+    { category: '인화성', keyword: '부탄가스' },
+    { category: '인화성', keyword: '페인트' },
+    { category: '인화성', keyword: '신나' },
+    { category: '인화성', keyword: '알코올' },
+    { category: '배터리', keyword: '보조배터리' },
+    { category: '배터리', keyword: '리튬배터리' },
+    { category: '생물',   keyword: '동물' },
+    { category: '생물',   keyword: '식물' },
+    { category: '온도',   keyword: '냉장' },
+    { category: '온도',   keyword: '냉동' },
+    { category: '기타',   keyword: '주류' },
+    { category: '기타',   keyword: '의약품' },
+    { category: '기타',   keyword: '총포' },
+    { category: '기타',   keyword: '도검' },
+  ];
+  function checkBanned(name) {
+    const s = (name || '').trim();
+    if (!s) return { hardHits: [], softHits: [] };
+    const hits = BANNED_RULES.filter(r => s.includes(r.keyword));
+    return {
+      hardHits: hits.filter(h => !h.condition),
+      softHits: hits.filter(h => h.condition),
+    };
+  }
 
-        // 결과 초기화
-        function resetOutput() {
-            document.getElementById('outputSum').textContent = '0cm';
-            document.getElementById('outputVolumeWeight').textContent = '0kg';
-            document.getElementById('outputBilledWeight').textContent = '0kg';
-            document.getElementById('outputSizeGrade').textContent = '-';
-            document.getElementById('outputRegion').textContent = '-';
-            document.getElementById('outputPrice').textContent = '0원';
-            document.getElementById('outputETA').textContent = '-';
-        }
+  // 운송장 번호 - 규정 §9(지점코드 2자리 + 접수순번 8자리, "절대 겹치면
+  // 안 됩니다"). 지점별 순번 카운터를 두고 이미 발급된 번호와 다시
+  // 겹치지 않는지도 확인한다. 서울지점 첫 건이면 1100000001이 나온다 -
+  // setup.sql 샘플1(이불) 운송장번호와 정확히 같은 값이라 검산 포인트로
+  // 쓸 수 있다.
+  const seqByBranch = {};
+  const issuedTrackingNos = new Set();
+  function nextTrackingNo(branchCode) {
+    let n = (seqByBranch[branchCode] || 0) + 1;
+    let no = branchCode + String(n).padStart(8, '0');
+    while (issuedTrackingNos.has(no)) {
+      n += 1;
+      no = branchCode + String(n).padStart(8, '0');
+    }
+    seqByBranch[branchCode] = n;
+    issuedTrackingNos.add(no);
+    return no;
+  }
 
-        // 폼 초기화
-        function resetForm() {
-            document.getElementById('senderName').value = '';
-            document.getElementById('senderPhone').value = '';
-            document.getElementById('receiverName').value = '';
-            document.getElementById('receiverPhone').value = '';
-            document.getElementById('branchCode').value = '';
-            document.getElementById('receiverArea').value = '';
-            document.getElementById('itemName').value = '';
-            document.getElementById('weight').value = '';
-            document.getElementById('width').value = '';
-            document.getElementById('height').value = '';
-            document.getElementById('depth').value = '';
-            resetOutput();
-            document.getElementById('alertBox').classList.add('hidden');
-        }
+  function formatWon(n) {
+    if (n === null || n === undefined || isNaN(n)) return '-';
+    return n.toLocaleString('ko-KR') + '원';
+  }
+  // 빈 값・숫자아님・0 이하는 전부 null(무효)로 처리한다. A_최소판/D 클론이
+  // 갖고 있던 결함(빈 값이 조용히 0으로 취급되는 것)을 이 파일에서는
+  // 반복하지 않는다 - 무효면 계산을 진행하지 않고 "입력 대기"로 멈춘다.
+  function getNumeric(id) {
+    const raw = document.getElementById(id).value;
+    if (raw === '' || raw === null || raw === undefined) return null;
+    const n = parseFloat(raw);
+    if (isNaN(n) || n <= 0) return null;
+    return n;
+  }
 
-        // 접수 완료 처리
-        function handleSubmit() {
-            const senderName = document.getElementById('senderName').value.trim();
-            const receiverName = document.getElementById('receiverName').value.trim();
-            const receiverPhone = document.getElementById('receiverPhone').value.trim();
-            const branchCode = document.getElementById('branchCode').value;
-            const receiverArea = document.getElementById('receiverArea').value;
-            const itemName = document.getElementById('itemName').value.trim();
-            const weight = document.getElementById('weight').value;
-            const width = document.getElementById('width').value;
-            const height = document.getElementById('height').value;
-            const depth = document.getElementById('depth').value;
-            const price = document.getElementById('outputPrice').textContent;
+  // ============================================================
+  // 렌더링
+  // ============================================================
+  function renderBannedWarning(ban) {
+    const el = document.getElementById('bannedWarning');
+    const box = document.getElementById('softConfirmBox');
+    if (ban.hardHits.length > 0) {
+      const h = ban.hardHits[0];
+      el.innerHTML = `<span class="badge bad">접수 불가 품목입니다 - ${h.category} "${h.keyword}"(규정 §5). 요금 계산 전에 거절합니다.</span>`;
+      box.style.display = 'none';
+    } else if (ban.softHits.length > 0) {
+      const h = ban.softHits[0];
+      el.innerHTML = `<span class="badge warn">"${h.keyword}"는 ${h.condition} 금지 품목입니다(규정 §5). 가격을 확인할 수 없어 직원 확인이 필요합니다.</span>`;
+      box.style.display = 'block';
+      document.getElementById('softConfirmText').textContent =
+        `"${h.keyword}" - ${h.condition} 금지 품목(규정 §5 귀중품). 50만원 이하임을 확인했으면 아래에 체크하세요.`;
+    } else {
+      el.innerHTML = '';
+      box.style.display = 'none';
+    }
+  }
 
-            // 필수 필드 검증
-            if (!senderName || !receiverName || !receiverPhone || !branchCode || !receiverArea || !itemName || !weight || !width || !height || !depth) {
-                showAlert('⚠️ 모든 필수 항목을 입력해주세요.', 'warning');
-                return;
-            }
+  function step(no, title, body) {
+    return `<div class="calc-step">
+      <div class="calc-step-title">${no}. ${title}</div>
+      <div class="calc-step-body">${body}</div>
+    </div>`;
+  }
 
-            // 가격이 계산되었는지 확인
-            if (price === '0원') {
-                showAlert('⚠️ 요금 계산을 먼저 완료해주세요.', 'warning');
-                return;
-            }
+  function renderRateTable(matchedGrade, matchedRegion) {
+    const tbody = document.querySelector('#rateTable tbody');
+    tbody.innerHTML = RATE_TABLE.map(tier => {
+      const isGradeMatch = tier.grade === matchedGrade;
+      function cell(region) {
+        const hit = isGradeMatch && matchedRegion === region;
+        return `<td class="${hit ? 'cell-match' : ''}">${tier.price[region].toLocaleString('ko-KR')}원</td>`;
+      }
+      return `<tr class="${isGradeMatch ? 'grade-match' : ''}">
+        <td>${tier.grade}</td>
+        <td>${tier.maxSum}cm 이하 / ${tier.maxWeight}kg 이하</td>
+        ${cell('일반')}${cell('제주')}${cell('도서산간')}
+      </tr>`;
+    }).join('');
+  }
 
-            // 접수 성공 메시지
-            alert(`접수가 완료되었습니다!\n\n보내는 분: ${senderName}\n받는 분: ${receiverName}\n요금: ${price}\n도착예정일: ${document.getElementById('outputETA').textContent}`);
-            resetForm();
-        }
+  function renderCalcPending() {
+    document.getElementById('calcSteps').innerHTML =
+      '<div class="calc-pending">무게・가로・세로・높이를 모두 입력하면 계산 과정이 여기 순서대로 표시됩니다.</div>';
+    renderRateTable(null, null);
+    // Phase 3-A: 간소화 모드도 초기화
+    document.getElementById('summaryGrade').textContent = '-';
+    document.getElementById('summaryOption').textContent = '-';
+    document.getElementById('summaryPrice').textContent = '-';
+    document.getElementById('summaryEta').textContent = '-';
+  }
 
-        // 초기화
-        setupEventListeners();
-    </script>
+  function renderCalcBannedStop(itemName, hit) {
+    document.getElementById('calcSteps').innerHTML = `<div class="calc-step reject">
+      <div class="calc-step-title">1. 금지 품목 확인 (규정 §8-1) - 여기서 중단</div>
+      <div class="calc-step-body">물품명 "${itemName}" -> ${hit.category} 분류 "${hit.keyword}"에 걸림 (규정 §5).
+      요금 계산 전에 거절합니다. 부피 무게・등급・요금은 계산하지 않습니다.</div>
+    </div>`;
+    renderRateTable(null, null);
+  }
+
+  function renderCalcSteps(weight, width, height, depth, area) {
+    const volumeWeightKg = (width * height * depth) / 6000;
+    const billedWeightKg = Math.max(weight, volumeWeightKg);
+    const sumCm = width + height + depth;
+    const gt = gradeTrace(sumCm, billedWeightKg);
+
+    let html = '';
+    html += step('1', '부피 무게 계산 (규정 §4)',
+      `가로${width} x 세로${height} x 높이${depth} / 6000 = <b>${volumeWeightKg.toFixed(2)}kg</b>`);
+    html += step('2', '요금 무게 (규정 §4)',
+      `실제 무게 ${weight}kg 과 부피 무게 ${volumeWeightKg.toFixed(2)}kg 중 큰 값 = <b>${billedWeightKg.toFixed(2)}kg</b>`);
+    html += step('3', '세 변의 합 (규정 §3)',
+      `${width} + ${height} + ${depth} = <b>${sumCm}cm</b>`);
+
+    const gradeDetail = gt.lines.map(l => {
+      const mark = l.pass ? '통과 -> 이 등급 채택'
+        : (!l.sumOk && !l.wtOk ? '세변합・무게 둘 다 기준 초과'
+        : (!l.sumOk ? '세변합 기준 초과' : '무게 기준 초과'));
+      return `${l.grade}(세변합 ${l.maxSum}cm 이하 / 무게 ${l.maxWeight}kg 이하): ${mark}`;
+    }).join('<br>');
+    html += step('4', '크기 등급 판정 (규정 §3, §8-4)', gradeDetail);
+
+    if (!gt.matched) {
+      html += `<div class="calc-step reject">
+        <div class="calc-step-title">접수 불가 (규정 §3, §8-5)</div>
+        <div class="calc-step-body">대형 상한(세 변의 합 160cm 또는 요금 무게 25kg)을 넘었습니다.
+        지금 값 - 세 변의 합 ${sumCm}cm, 요금 무게 ${billedWeightKg.toFixed(2)}kg.</div>
+      </div>`;
+      document.getElementById('calcSteps').innerHTML = html;
+      renderRateTable(null, null);
+      return;
+    }
+
+    if (!area) {
+      html += `<div class="calc-step pending-note">
+        <div class="calc-step-title">5. 권역 판정 (규정 §2, §8-6)</div>
+        <div class="calc-step-body">도착 지역을 선택하면 권역・요금・도착예정일까지 이어서 계산됩니다.</div>
+      </div>`;
+      document.getElementById('calcSteps').innerHTML = html;
+      renderRateTable(gt.matched, null);
+      return;
+    }
+
+    const region = determineRegion(area);
+    const tier = RATE_TABLE.find(t => t.grade === gt.matched);
+    const basePrice = tier.price[region];
+    const shippingOption = document.querySelector('input[name="shippingOption"]:checked').value;
+    const multiplier = getShippingOptionMultiplier(shippingOption);
+    const finalPrice = Math.round(basePrice * multiplier);
+    const specialNote = (area === '진주' || area === '거제')
+      ? '다리・도로로 연결된 일반 지역입니다(규정 §2 "주의" 조항, 도서산간이 아닙니다). -> '
+      : '';
+
+    html += step('5', '권역 판정 (규정 §2, §8-6)',
+      `도착 지역 "${area}" -> ${specialNote}<b>${region}</b>`);
+    html += step('6', '요금 조회 (규정 §3 요금표)',
+      `${gt.matched} 등급 x ${region} 권역 = <b>${formatWon(basePrice)}</b>`);
+
+    const shippingLabel = getShippingOptionLabel(shippingOption);
+    let shippingNote = '';
+    if (shippingOption === 'express') {
+      shippingNote = ` + 익스프레스 옵션 (+20%) = ${formatWon(basePrice)} × 1.2 = <b>${formatWon(finalPrice)}</b>`;
+    } else if (shippingOption === 'overnight') {
+      shippingNote = ` + 나이트 옵션 (+50%) = ${formatWon(basePrice)} × 1.5 = <b>${formatWon(finalPrice)}</b>`;
+    }
+    if (shippingNote) {
+      html += step('7', '배송 옵션 요금 (규정 추가)', shippingNote);
+    }
+
+    const dayOffset = getShippingOptionDayOffset(shippingOption);
+    const businessDaysNeeded = ETA_BUSINESS_DAYS[region] + dayOffset;
+    const etaInfo = addBusinessDaysTrace(new Date(), Math.max(0, businessDaysNeeded));
+    const etaDetail = etaInfo.trace.map(t =>
+      `${formatDateISO(t.date)}(${WEEKDAY_KO[t.dow]}) - ${t.isWeekend ? '주말이라 제외' : `영업일 ${t.countedAt}일째`}`
+    ).join('<br>');
+    const stepNo = shippingNote ? '8' : '7';
+    const etaStepTitle = `도착 예정일 (규정 §6 - ${region} ${ETA_BUSINESS_DAYS[region]}영업일${shippingOption !== 'standard' ? `, ${shippingLabel}로 ${businessDaysNeeded}영업일` : ''})`;
+    html += step(stepNo, etaStepTitle,
+      `${etaDetail}<br>도착 예정 -> <b>${formatDateISO(etaInfo.finalDate)}(${WEEKDAY_KO[etaInfo.finalDate.getDay()]})</b>`);
+
+    document.getElementById('calcSteps').innerHTML = html;
+    renderRateTable(gt.matched, region);
+
+    // Phase 3-A: 간소화 모드도 업데이트
+    document.getElementById('summaryGrade').textContent = gt.matched || '-';
+    document.getElementById('summaryOption').textContent = getShippingOptionLabel(shippingOption);
+    document.getElementById('summaryPrice').textContent = formatWon(finalPrice);
+    document.getElementById('summaryEta').textContent = etaInfo.finalDate ? formatDateISO(etaInfo.finalDate) : '-';
+  }
+
+  // ============================================================
+  // 검증 + 상태 갱신 (필수값 / 금지품목 / 한도초과 - 규정의 검증 전부)
+  // ============================================================
+  function validateAll() {
+    const errors = [];
+    const branch = document.getElementById('branch').value;
+    const senderName = document.getElementById('senderName').value.trim();
+    const receiverName = document.getElementById('receiverName').value.trim();
+    const area = document.getElementById('receiverArea').value;
+    const itemName = document.getElementById('itemName').value.trim();
+    const weight = getNumeric('weightKg');
+    const width = getNumeric('widthCm');
+    const height = getNumeric('heightCm');
+    const depth = getNumeric('depthCm');
+
+    if (!branch) errors.push('접수 지점을 선택하세요.');
+    if (!senderName) errors.push('보내는 분 이름을 입력하세요.');
+    if (!receiverName) errors.push('받는 분 이름을 입력하세요.');
+    if (!area) errors.push('도착 지역을 선택하세요.');
+    if (!itemName) errors.push('물품명을 입력하세요.');
+    if (weight === null) errors.push('실제 무게를 0보다 큰 숫자로 입력하세요.');
+    if (width === null || height === null || depth === null) errors.push('가로・세로・높이를 모두 0보다 큰 숫자로 입력하세요.');
+
+    const ban = checkBanned(itemName);
+    if (ban.hardHits.length > 0) {
+      const h = ban.hardHits[0];
+      errors.push(`접수 불가 품목입니다 - ${h.category} "${h.keyword}"(규정 §5). 요금 계산 전에 거절합니다.`);
+    }
+    if (ban.softHits.length > 0 && !document.getElementById('staffConfirm').checked) {
+      const h = ban.softHits[0];
+      errors.push(`"${h.keyword}"는 ${h.condition} 금지 품목입니다(규정 §5). 직원 확인 체크가 필요합니다.`);
+    }
+
+    if (weight !== null && width !== null && height !== null && depth !== null) {
+      const sumCm = width + height + depth;
+      const billedWeightKg = Math.max(weight, (width * height * depth) / 6000);
+      const grade = determineGrade(sumCm, billedWeightKg);
+      if (!grade) errors.push(`대형 상한 초과로 접수할 수 없습니다(세 변의 합 ${sumCm.toFixed(1)}cm, 요금 무게 ${billedWeightKg.toFixed(2)}kg - 규정 §3).`);
+    }
+    return errors;
+  }
+
+  function updateSubmitState() {
+    const errors = validateAll();
+    document.getElementById('submitBtn').disabled = errors.length > 0;
+    document.getElementById('errorBox').innerHTML = errors.length > 0
+      ? '<div class="error-title">접수 완료를 누르려면</div><ul>' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>'
+      : '';
+  }
+
+  function recalc() {
+    const itemName = document.getElementById('itemName').value;
+    const ban = checkBanned(itemName);
+    renderBannedWarning(ban);
+
+    const weight = getNumeric('weightKg');
+    const width = getNumeric('widthCm');
+    const height = getNumeric('heightCm');
+    const depth = getNumeric('depthCm');
+    const area = document.getElementById('receiverArea').value;
+
+    // 계산 순서 1번(규정 §8-1) - 금지 품목이면 부피무게・등급・요금을
+    // 계산하지 않고 여기서 멈춘다. "요금 계산 전에 거절합니다"를 계산
+    // 패널에서도 그대로 지킨다(하드 차단만 - 시계 같은 소프트 확인
+    // 대상은 계산을 계속 보여주고 확인 체크로 넘어가게 둔다).
+    if (ban.hardHits.length > 0) {
+      renderCalcBannedStop(itemName, ban.hardHits[0]);
+    } else if (weight === null || width === null || height === null || depth === null) {
+      renderCalcPending();
+    } else {
+      renderCalcSteps(weight, width, height, depth, area);
+    }
+    updateSubmitState();
+  }
+
+  // ============================================================
+  // 접수 완료 - 운송장 발급 + 목록 반영 + 영수증 표시
+  // ============================================================
+  const savedShipments = [];
+  let currentFilterBranch = 'all';
+  let currentSearchTerm = '';
+  let editingIndex = -1;
+
+  function filterList() {
+    const body = document.getElementById('listBody');
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    currentSearchTerm = searchTerm;
+
+    const filtered = savedShipments.filter((s, idx) => {
+      const branchMatch = currentFilterBranch === 'all' || s.trackingNo.substring(0, 2) === currentFilterBranch;
+      const searchMatch = !searchTerm ||
+        s.trackingNo.includes(searchTerm) ||
+        s.senderName.toLowerCase().includes(searchTerm) ||
+        s.receiverName.toLowerCase().includes(searchTerm) ||
+        s.itemName.toLowerCase().includes(searchTerm);
+      return branchMatch && searchMatch;
+    });
+
+    if (filtered.length === 0) {
+      body.innerHTML = '<tr class="empty-row"><td colspan="12">검색 결과가 없습니다</td></tr>';
+      return;
+    }
+
+    body.innerHTML = filtered.map((s, idx) => {
+      const realIdx = savedShipments.indexOf(s);
+      return `
+      <tr>
+        <td><span class="tracking-cell" onclick="copyTrackingNo('${s.trackingNo}', event)">${s.trackingNo}</span></td><td>${s.branchName}</td><td>${s.senderName}</td><td>${s.receiverName}</td>
+        <td>${s.receiverArea}</td><td>${s.regionType}</td><td>${s.itemName}</td>
+        <td>${s.billedWeightKg}kg</td><td>${s.sizeGrade}</td><td>${getShippingOptionLabel(s.shippingOption)}</td><td>${formatWon(s.finalPrice)}</td><td>${s.etaDate}</td>
+        <td style="text-align:center;"><span class="status-badge"><span class="badge-icon">✓</span> 접수완료</span></td>
+        <td style="text-align:center;">
+          <button class="action-btn edit" onclick="openEditModal(${realIdx})">상세</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function setFilterBranch(code) {
+    currentFilterBranch = code;
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    filterList();
+  }
+
+  function openEditModal(idx) {
+    editingIndex = idx;
+    const s = savedShipments[idx];
+    document.getElementById('editTrackingNo').textContent = s.trackingNo;
+    document.getElementById('editBranch').textContent = s.branchName;
+    document.getElementById('editSender').value = s.senderName;
+    document.getElementById('editReceiver').value = s.receiverName;
+    document.getElementById('editItem').value = s.itemName;
+    document.getElementById('editArea').textContent = s.receiverArea;
+    document.getElementById('editRegion').textContent = s.regionType;
+    document.getElementById('editWeight').textContent = s.weightKg + 'kg';
+    document.getElementById('editBilledWeight').textContent = s.billedWeightKg + 'kg';
+    document.getElementById('editGrade').textContent = s.sizeGrade;
+    document.getElementById('editShippingOption').textContent = getShippingOptionLabel(s.shippingOption);
+    document.getElementById('editBasePrice').textContent = formatWon(s.basePrice);
+    document.getElementById('editPrice').textContent = formatWon(s.finalPrice);
+    document.getElementById('editETA').textContent = s.etaDate;
+    document.getElementById('editModal').classList.add('active');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+    editingIndex = -1;
+  }
+
+  function deleteShipment() {
+    if (editingIndex >= 0 && confirm('이 접수를 취소하시겠습니까?')) {
+      savedShipments.splice(editingIndex, 1);
+      closeEditModal();
+      filterList();
+      updateStats();
+    }
+  }
+
+  function updateStats() {
+    const total = savedShipments.length;
+    const totalPrice = savedShipments.reduce((sum, s) => sum + s.finalPrice, 0);
+    const avgPrice = total > 0 ? Math.round(totalPrice / total) : 0;
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statRevenue').textContent = formatWon(totalPrice);
+    document.getElementById('statAvgPrice').textContent = formatWon(avgPrice);
+
+    // Branch stats
+    const byBranch = {};
+    savedShipments.forEach(s => {
+      const code = s.trackingNo.substring(0, 2);
+      if (!byBranch[code]) {
+        byBranch[code] = { count: 0, total: 0, regions: {}, name: s.branchName };
+      }
+      byBranch[code].count++;
+      byBranch[code].total += s.finalPrice;
+      byBranch[code].regions[s.regionType] = (byBranch[code].regions[s.regionType] || 0) + 1;
+    });
+
+    const branchRows = Object.entries(byBranch).map(([code, data]) => {
+      const avgBranch = Math.round(data.total / data.count);
+      const mainRegion = Object.keys(data.regions).sort((a, b) => data.regions[b] - data.regions[a])[0];
+      return `<tr style="border: 1px solid var(--border);">
+        <td style="padding:8px;">${data.name}</td>
+        <td style="padding:8px;text-align:center;">${data.count}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(data.total)}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(avgBranch)}</td>
+        <td style="padding:8px;">${mainRegion || '-'}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('statsByBranch').innerHTML = branchRows || '<tr style="text-align:center;color:var(--muted);"><td colspan="5" style="padding:14px;">데이터 없음</td></tr>';
+
+    // Region stats
+    const byRegion = {};
+    savedShipments.forEach(s => {
+      if (!byRegion[s.regionType]) {
+        byRegion[s.regionType] = { count: 0, total: 0, grades: {} };
+      }
+      byRegion[s.regionType].count++;
+      byRegion[s.regionType].total += s.finalPrice;
+      byRegion[s.regionType].grades[s.sizeGrade] = (byRegion[s.regionType].grades[s.sizeGrade] || 0) + 1;
+    });
+
+    const regionRows = Object.entries(byRegion).map(([region, data]) => {
+      const avgRegion = Math.round(data.total / data.count);
+      const mainGrade = Object.keys(data.grades).sort((a, b) => data.grades[b] - data.grades[a])[0];
+      return `<tr style="border: 1px solid var(--border);">
+        <td style="padding:8px;">${region}</td>
+        <td style="padding:8px;text-align:center;">${data.count}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(data.total)}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(avgRegion)}</td>
+        <td style="padding:8px;">${mainGrade || '-'}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('statsByRegion').innerHTML = regionRows || '<tr style="text-align:center;color:var(--muted);"><td colspan="5" style="padding:14px;">데이터 없음</td></tr>';
+
+    // Grade stats
+    const byGrade = {};
+    savedShipments.forEach(s => {
+      if (!byGrade[s.sizeGrade]) {
+        byGrade[s.sizeGrade] = { count: 0, total: 0 };
+      }
+      byGrade[s.sizeGrade].count++;
+      byGrade[s.sizeGrade].total += s.finalPrice;
+    });
+
+    const gradeRows = Object.entries(byGrade).map(([grade, data]) => {
+      const pct = Math.round(data.count * 100 / total);
+      const avgGrade = Math.round(data.total / data.count);
+      return `<tr style="border: 1px solid var(--border);">
+        <td style="padding:8px;">${grade}</td>
+        <td style="padding:8px;text-align:center;">${data.count}</td>
+        <td style="padding:8px;text-align:center;">${pct}%</td>
+        <td style="padding:8px;text-align:right;">${formatWon(data.total)}</td>
+        <td style="padding:8px;text-align:right;">${formatWon(avgGrade)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('statsByGrade').innerHTML = gradeRows || '<tr style="text-align:center;color:var(--muted);"><td colspan="5" style="padding:14px;">데이터 없음</td></tr>';
+
+    updateStatsShippingOption();
+  }
+
+  function createTextChart(count, maxCount, barWidth = 30) {
+    const ratio = maxCount > 0 ? count / maxCount : 0;
+    const filled = Math.round(ratio * barWidth);
+    const empty = barWidth - filled;
+    return '█'.repeat(filled) + '░'.repeat(empty);
+  }
+
+  function updateStatsShippingOption() {
+    const total = savedShipments.length;
+    const byOption = { standard: 0, express: 0, overnight: 0 };
+    const priceByOption = { standard: 0, express: 0, overnight: 0 };
+
+    savedShipments.forEach(s => {
+      const opt = s.shippingOption || 'standard';
+      byOption[opt]++;
+      priceByOption[opt] += s.finalPrice;
+    });
+
+    const rows = Object.entries(byOption).map(([opt, count]) => {
+      const pct = total > 0 ? Math.round(count * 100 / total) : 0;
+      const optPrice = priceByOption[opt];
+      const avgPrice = count > 0 ? Math.round(optPrice / count) : 0;
+      const label = getShippingOptionLabel(opt);
+      return `
+        <div class="shipping-stat-row">
+          <div>${label}</div>
+          <div style="text-align: center;">${count}</div>
+          <div style="text-align: center;">${pct}%</div>
+          <div style="text-align: right;">${formatWon(optPrice)}</div>
+          <div style="text-align: right;">${formatWon(avgPrice)}</div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('statsByShippingOption').innerHTML = rows;
+
+    const totalPrice = savedShipments.reduce((sum, s) => sum + s.finalPrice, 0);
+    const avgPrice = total > 0 ? Math.round(totalPrice / total) : 0;
+    document.getElementById('shippingTotalCount').textContent = total;
+    document.getElementById('shippingTotalPrice').textContent = formatWon(totalPrice);
+    document.getElementById('shippingAvgPrice').textContent = formatWon(avgPrice);
+
+    const maxCount = Math.max(...Object.values(byOption), 1);
+    const chartHtml = Object.entries(byOption).map(([opt, count]) => {
+      const pct = total > 0 ? Math.round(count * 100 / total) : 0;
+      const label = getShippingOptionLabel(opt);
+      const chart = createTextChart(count, maxCount, 20);
+      return `
+        <div class="chart-bar">
+          <div class="chart-label">${label}</div>
+          <div class="chart-visual">${chart}</div>
+          <div class="chart-percent">${pct}%</div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('shippingChart').innerHTML = chartHtml || '<div style="color: var(--muted); padding: 20px; text-align: center;">데이터 없음</div>';
+  }
+
+  function renderList() {
+    filterList();
+  }
+
+  function showReceipt(record) {
+    const el = document.getElementById('receiptSection');
+    el.style.display = 'block';
+    const priceDetail = record.shippingOption !== 'standard'
+      ? `${formatWon(record.basePrice)} (기본) + ${getShippingOptionLabel(record.shippingOption)} = ${formatWon(record.finalPrice)}`
+      : formatWon(record.finalPrice);
+    el.innerHTML = `
+      <div class="receipt-card">
+        <div class="receipt-title">접수가 완료됐습니다</div>
+        <div class="receipt-tno">운송장번호 ${record.trackingNo}</div>
+        <div class="receipt-line">접수 지점 ${record.branchName} / 보내는 분 ${record.senderName}</div>
+        <div class="receipt-line">받는 분 ${record.receiverName} / 도착 지역 ${record.receiverArea}(${record.regionType})</div>
+        <div class="receipt-line">물품 ${record.itemName} / 요금 무게 ${record.billedWeightKg}kg / 등급 ${record.sizeGrade}</div>
+        <div class="receipt-line">배송옵션 ${getShippingOptionLabel(record.shippingOption)}</div>
+        <div class="receipt-price">${priceDetail}</div>
+        <div class="receipt-line">도착 예정일 ${record.etaDate}</div>
+      </div>`;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function submitShipment() {
+    const errors = validateAll();
+    if (errors.length > 0) { updateSubmitState(); return; }
+
+    const branchName = document.getElementById('branch').value.trim();
+    const branchCode = branchCodeOf(branchName);
+    const senderName = document.getElementById('senderName').value.trim();
+    const receiverName = document.getElementById('receiverName').value.trim();
+    const area = document.getElementById('receiverArea').value;
+    const itemName = document.getElementById('itemName').value.trim();
+    const weight = getNumeric('weightKg');
+    const width = getNumeric('widthCm');
+    const height = getNumeric('heightCm');
+    const depth = getNumeric('depthCm');
+    const shippingOption = document.querySelector('input[name="shippingOption"]:checked').value;
+
+    const volumeWeightKg = (width * height * depth) / 6000;
+    const billedWeightKg = Math.max(weight, volumeWeightKg);
+    const sumCm = width + height + depth;
+    const grade = determineGrade(sumCm, billedWeightKg);
+    const region = determineRegion(area);
+    const tier = RATE_TABLE.find(t => t.grade === grade);
+    const basePrice = tier.price[region];
+    const multiplier = getShippingOptionMultiplier(shippingOption);
+    const finalPrice = Math.round(basePrice * multiplier);
+    const dayOffset = getShippingOptionDayOffset(shippingOption);
+    const businessDaysNeeded = ETA_BUSINESS_DAYS[region] + dayOffset;
+    const etaInfo = addBusinessDaysTrace(new Date(), Math.max(0, businessDaysNeeded));
+    const trackingNo = nextTrackingNo(branchCode);
+
+    const record = {
+      trackingNo, branchName, senderName, receiverName,
+      receiverArea: area, regionType: region, itemName,
+      weightKg: weight, widthCm: width, heightCm: height, depthCm: depth,
+      billedWeightKg: Math.round(billedWeightKg * 10) / 10,
+      sizeGrade: grade, basePrice, shippingOption, finalPrice,
+      etaDate: formatDateISO(etaInfo.finalDate),
+    };
+
+    // ---- Supabase 연동 자리 (키를 넣지 않는다) ----
+    // const { data, error } = await supabaseClient.from('shipments').insert([{...record}]);
+
+    savedShipments.push(record);
+    renderList();
+    showReceipt(record);
+    resetForm();
+  }
+
+  function resetForm() {
+    ['senderName', 'receiverName', 'itemName', 'weightKg', 'widthCm', 'heightCm', 'depthCm']
+      .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('branch').value = '';
+    document.getElementById('receiverArea').value = '';
+    document.getElementById('staffConfirm').checked = false;
+    document.getElementById('softConfirmBox').style.display = 'none';
+    recalc();
+  }
+
+  initAddressBook();
+  renderList();
+  recalc();
+</script>
 </body>
 </html>
