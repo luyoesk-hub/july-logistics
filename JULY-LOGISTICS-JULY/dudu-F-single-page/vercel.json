@@ -1,9 +1,8 @@
 {
   "version": 2,
+  "public": true,
   "buildCommand": "echo 'Static site, no build needed'",
-  "env": {
-    "VERCEL_ENV": "@vercel_env"
-  },
+  "outputDirectory": ".",
   "regions": ["icn1"],
   "headers": [
     {
@@ -24,9 +23,9 @@
       ]
     }
   ],
-  "redirects": [
+  "rewrites": [
     {
-      "source": "/",
+      "source": "/(.*)",
       "destination": "/single-page.html"
     }
   ]
