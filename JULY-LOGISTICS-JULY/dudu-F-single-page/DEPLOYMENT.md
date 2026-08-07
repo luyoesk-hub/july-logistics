@@ -26,13 +26,18 @@
    → GitHub 저장소 선택: july-logistics
    ```
 
-3. **프로젝트 설정**
+3. **프로젝트 설정** ⚠️ 중요!
    ```
    Framework: Other (정적 사이트)
-   Root Directory: dudu-F-single-page
+   ✅ Root Directory: dudu-F-single-page  ← 반드시 설정!
    Build Command: (비워두기)
    Output Directory: (비워두기)
    ```
+
+   ⚠️ **Root Directory 설정이 매우 중요합니다!**
+   - 저장소의 최상위가 아닌
+   - dudu-F-single-page 폴더를 선택해야 합니다
+   - 그렇지 않으면 404 에러 발생!
 
 4. **배포**
    ```
@@ -40,10 +45,14 @@
    → 약 30초 후 배포 완료
    ```
 
-5. **접속**
+5. **접속** ⭐ 올바른 URL
    ```
+   https://july-logistics.vercel.app/
+   또는
    https://july-logistics.vercel.app/single-page.html
-   또는 설정한 커스텀 도메인
+   
+   ❌ 접근 금지:
+   https://july-logistics.vercel.app/dudu-F-single-page/single-page.html
    ```
 
 ---
@@ -189,15 +198,61 @@ Dashboard
 
 ## 트러블슈팅
 
-### 문제 1: 404 에러
+### 문제 1: 404 에러 ⚠️ 가장 흔한 에러
 
-**증상:** `https://july-logistics.vercel.app/` 접근 시 404
-
-**해결:**
+**증상:** 
 ```
-1. vercel.json의 redirects 확인
-2. Root Directory가 dudu-F-single-page인지 확인
-3. single-page.html 파일 존재 확인
+https://july-logistics.vercel.app/ → 404
+또는
+https://july-logistics.vercel.app/single-page.html → 404
+```
+
+**원인:**
+```
+❌ Root Directory를 dudu-F-single-page로 설정하지 않음
+❌ 배포할 때 저장소 최상위 폴더를 선택함
+❌ vercel.json 설정 문제
+```
+
+**해결 방법 (3가지 중 선택):**
+
+#### 방법 1️⃣ : Vercel 대시보드 재설정 (권장)
+```
+1. Vercel Dashboard 열기
+2. 프로젝트 선택 → Settings
+3. "Build & Development Settings"
+4. Root Directory: dudu-F-single-page ← 반드시 입력!
+5. Save & Redeploy 클릭
+6. 약 1분 후 다시 접속
+```
+
+#### 방법 2️⃣ : Vercel CLI로 재배포
+```bash
+cd dudu-F-single-page
+vercel --prod
+# 프롬프트:
+# Link to existing project? → Y
+# Project name? → july-logistics
+# Directory to use as root? → .
+```
+
+#### 방법 3️⃣ : 강제 재배포
+```
+1. Vercel Dashboard → Deployments
+2. 이전 배포 선택 → Redeploy 클릭
+3. 또는 GitHub에 아무 변화 없는 커밋
+   git commit --allow-empty -m "chore: trigger redeploy"
+   git push origin main
+4. Vercel이 자동 재배포
+```
+
+**확인:**
+```
+배포 후 확인할 URL:
+✅ https://july-logistics.vercel.app/
+✅ https://july-logistics.vercel.app/single-page.html
+
+둘 다 동일한 페이지가 보여야 함 (SPA 방식)
 ```
 
 ### 문제 2: 캐시 문제
