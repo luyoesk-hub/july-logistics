@@ -173,6 +173,33 @@
   .option-card label { display: block; cursor: pointer; font-weight: 600; font-size: 13px; }
   .option-card input[type="radio"] { cursor: pointer; }
   .option-price { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .addr-manage-btn { padding: 9px 12px; background: #f0f6ff; border: 1px solid var(--brand); border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--brand); font-weight: 600; margin-top: 6px; width: 100%; }
+  .addr-manage-btn:active { background: #e0ecff; }
+
+  #addressBookModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+  #addressBookModal.active { display: flex; align-items: center; justify-content: center; }
+  .addr-modal-content { background: #fff; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; max-height: 70vh; overflow-y: auto; }
+  .addr-modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+  .addr-modal-close { float: right; font-size: 24px; cursor: pointer; color: var(--muted); margin-top: -10px; }
+  .addr-list { list-style: none; padding: 0; margin: 0; }
+  .addr-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); }
+  .addr-list-item:last-child { border-bottom: none; }
+  .addr-list-item-text { font-size: 13px; flex: 1; }
+  .addr-delete-btn { padding: 4px 8px; background: #fbeceb; border: 1px solid #eab6b0; border-radius: 4px; color: #c0392b; cursor: pointer; font-size: 12px; font-weight: 600; }
+  .addr-modal-buttons { margin-top: 20px; display: flex; gap: 10px; }
+  .addr-clear-btn { flex: 1; padding: 12px; background: #fbeceb; border: 1px solid #eab6b0; border-radius: 8px; color: #c0392b; cursor: pointer; font-weight: 600; }
+  .addr-close-btn { flex: 1; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+  .shipping-option-stats { margin-top: 30px; }
+  .shipping-stat-row { display: grid; grid-template-columns: 120px 60px 60px 100px 100px; gap: 10px; padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .shipping-stat-row.header { background: #eef2f6; font-weight: 700; }
+  .shipping-stat-row.total { background: #f6f8fa; font-weight: 700; }
+  .shipping-chart { margin-top: 20px; }
+  .chart-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 12px; }
+  .chart-label { width: 80px; }
+  .chart-visual { flex: 1; font-family: monospace; letter-spacing: -2px; }
+  .chart-percent { width: 40px; text-align: right; }
 </style>
 </head>
 <body>
@@ -215,6 +242,7 @@
             </div>
             <button type="button" class="addr-btn" onclick="saveToAddressBook()">저장</button>
           </div>
+          <button type="button" class="addr-manage-btn" onclick="openAddressBookModal()">📋 주소록 관리</button>
         </div>
         <div class="field">
           <label for="receiverName">받는 분 이름 <span class="req">필수</span></label>
@@ -397,6 +425,28 @@
         <tr style="text-align: center; color: var(--muted);"><td colspan="5" style="padding: 14px;">데이터 없음</td></tr>
       </tbody>
     </table>
+
+    <h3 style="margin-top: 20px;">배송옵션별 통계</h3>
+    <div class="shipping-option-stats">
+      <div class="shipping-stat-row header">
+        <div style="font-weight: 700;">배송옵션</div>
+        <div style="text-align: center; font-weight: 700;">건수</div>
+        <div style="text-align: center; font-weight: 700;">비율</div>
+        <div style="text-align: right; font-weight: 700;">총 요금</div>
+        <div style="text-align: right; font-weight: 700;">평균 요금</div>
+      </div>
+      <div id="statsByShippingOption"></div>
+      <div class="shipping-stat-row total">
+        <div style="font-weight: 700;">합계</div>
+        <div id="shippingTotalCount" style="text-align: center;">0</div>
+        <div style="text-align: center;">100%</div>
+        <div id="shippingTotalPrice" style="text-align: right;">0원</div>
+        <div id="shippingAvgPrice" style="text-align: right;">0원</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top: 20px;">배송옵션별 비율</h3>
+    <div class="shipping-chart" id="shippingChart"></div>
   </div>
 
   <div id="editModal" class="modal">
@@ -439,6 +489,21 @@
           <button type="button" onclick="closeEditModal()" style="flex:1; padding:12px; background: #fff; border: 1px solid var(--border); border-radius:8px; cursor:pointer;">닫기</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div id="addressBookModal" class="modal">
+    <div class="addr-modal-content">
+      <span class="addr-modal-close" onclick="closeAddressBookModal()">&times;</span>
+      <div class="addr-modal-title">📋 주소록 관리</div>
+      <div style="margin-top: 20px;">
+        <div style="font-size: 12px; color: var(--muted); margin-bottom: 14px;">저장된 주소 (<span id="addrCount">0</span>/20)</div>
+        <ul class="addr-list" id="addressBookList"></ul>
+      </div>
+      <div class="addr-modal-buttons">
+        <button type="button" class="addr-clear-btn" onclick="clearAllAddressBook()">모두 삭제</button>
+        <button type="button" class="addr-close-btn" onclick="closeAddressBookModal()">닫기</button>
+      </div>
     </div>
   </div>
 </div>
@@ -493,6 +558,46 @@
     document.getElementById('receiverArea').value = addr.receiverArea;
     select.value = '';
     recalc();
+  }
+
+  function openAddressBookModal() {
+    const list = document.getElementById('addressBookList');
+    const count = document.getElementById('addrCount');
+    count.textContent = addressBook.length;
+    if (addressBook.length === 0) {
+      list.innerHTML = '<li style="padding: 20px; text-align: center; color: var(--muted);">저장된 주소가 없습니다</li>';
+    } else {
+      list.innerHTML = addressBook.map((addr, idx) => `
+        <li class="addr-list-item">
+          <div class="addr-list-item-text">${idx + 1}. ${addr.senderName} → ${addr.receiverArea}</div>
+          <button class="addr-delete-btn" onclick="deleteFromAddressBook(${idx})">삭제</button>
+        </li>
+      `).join('');
+    }
+    document.getElementById('addressBookModal').classList.add('active');
+  }
+
+  function closeAddressBookModal() {
+    document.getElementById('addressBookModal').classList.remove('active');
+  }
+
+  function deleteFromAddressBook(idx) {
+    if (confirm('이 주소를 삭제하시겠습니까?')) {
+      addressBook.splice(idx, 1);
+      localStorage.setItem('dudu_addressBook', JSON.stringify(addressBook));
+      updateAddressBookUI();
+      openAddressBookModal();
+    }
+  }
+
+  function clearAllAddressBook() {
+    if (confirm('저장된 주소를 모두 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+      addressBook = [];
+      localStorage.setItem('dudu_addressBook', JSON.stringify(addressBook));
+      updateAddressBookUI();
+      closeAddressBookModal();
+      alert('모든 주소가 삭제되었습니다');
+    }
   }
 
   // ============================================================
@@ -1063,6 +1168,66 @@
       </tr>`;
     }).join('');
     document.getElementById('statsByGrade').innerHTML = gradeRows || '<tr style="text-align:center;color:var(--muted);"><td colspan="5" style="padding:14px;">데이터 없음</td></tr>';
+
+    updateStatsShippingOption();
+  }
+
+  function createTextChart(count, maxCount, barWidth = 30) {
+    const ratio = maxCount > 0 ? count / maxCount : 0;
+    const filled = Math.round(ratio * barWidth);
+    const empty = barWidth - filled;
+    return '█'.repeat(filled) + '░'.repeat(empty);
+  }
+
+  function updateStatsShippingOption() {
+    const total = savedShipments.length;
+    const byOption = { standard: 0, express: 0, overnight: 0 };
+    const priceByOption = { standard: 0, express: 0, overnight: 0 };
+
+    savedShipments.forEach(s => {
+      const opt = s.shippingOption || 'standard';
+      byOption[opt]++;
+      priceByOption[opt] += s.finalPrice;
+    });
+
+    const rows = Object.entries(byOption).map(([opt, count]) => {
+      const pct = total > 0 ? Math.round(count * 100 / total) : 0;
+      const optPrice = priceByOption[opt];
+      const avgPrice = count > 0 ? Math.round(optPrice / count) : 0;
+      const label = getShippingOptionLabel(opt);
+      return `
+        <div class="shipping-stat-row">
+          <div>${label}</div>
+          <div style="text-align: center;">${count}</div>
+          <div style="text-align: center;">${pct}%</div>
+          <div style="text-align: right;">${formatWon(optPrice)}</div>
+          <div style="text-align: right;">${formatWon(avgPrice)}</div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('statsByShippingOption').innerHTML = rows;
+
+    const totalPrice = savedShipments.reduce((sum, s) => sum + s.finalPrice, 0);
+    const avgPrice = total > 0 ? Math.round(totalPrice / total) : 0;
+    document.getElementById('shippingTotalCount').textContent = total;
+    document.getElementById('shippingTotalPrice').textContent = formatWon(totalPrice);
+    document.getElementById('shippingAvgPrice').textContent = formatWon(avgPrice);
+
+    const maxCount = Math.max(...Object.values(byOption), 1);
+    const chartHtml = Object.entries(byOption).map(([opt, count]) => {
+      const pct = total > 0 ? Math.round(count * 100 / total) : 0;
+      const label = getShippingOptionLabel(opt);
+      const chart = createTextChart(count, maxCount, 20);
+      return `
+        <div class="chart-bar">
+          <div class="chart-label">${label}</div>
+          <div class="chart-visual">${chart}</div>
+          <div class="chart-percent">${pct}%</div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('shippingChart').innerHTML = chartHtml || '<div style="color: var(--muted); padding: 20px; text-align: center;">데이터 없음</div>';
   }
 
   function renderList() {
