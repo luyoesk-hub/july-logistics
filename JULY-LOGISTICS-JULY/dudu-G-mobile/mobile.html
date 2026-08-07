@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>두두택배 접수 - 모바일판</title>
+<!--
+  두두택배 접수 - G. 모바일판
+  =================================================
+  이 변형의 존재 이유 - 키오스크가 아니라 손에 들고 쓰는 폰 접수 화면이다.
+  세로 화면 한 손 조작을 기준으로, 터치 대상을 전부 44px 이상으로 두고
+  (버튼・입력칸・체크박스 전부), 하단 고정 다음/이전 버튼으로 엄지 닿는
+  범위 안에서 진행하게 했다. 단계는 3개(보내는분・받는분・지역 -> 물품
+  정보 -> 요금 확인)+완료 화면 1개로 압축했다 - D 클론의 7단계 Route보다
+  적다. 계산・검증(부피무게・요금무게・등급・권역・요금・도착예정일 자동
+  계산, 금지품목 7분류, 대형 한도초과 거절)은 F_한장완성판.html과 완전히
+  같은 접수규정(02_접수규정.md) 로직을 그대로 쓴다 - 화면 구조만 다르다.
+  검증 - resize_window mobile 프리셋(375x812)에서 document.scrollWidth가
+  innerWidth와 정확히 같음(가로 스크롤 0)을 스크린샷과 실측 둘 다로
+  확인했다. setup.sql 샘플로 3단계(누가・어디로 -> 무엇을・얼마나 ->
+  요금확인)를 실제 클릭・입력으로 끝까지 진행해 운송장 발급까지 통과 -
+  이불(1100000001, 9000원, 서울/일반), 화장품(3100000001, 3500원,
+  진주/일반 - 진주=일반 실제 확인), 운동화(3200000001, 4000원, 거제/일반
+  - 거제=일반 실제 확인), 쌀(6000원, 울산/일반, 3/3 화면 스크린샷 확인).
+  금지품목(주류)이 2단계에서 다음 버튼을 막는 것, 한도초과(커튼 3.8kg
+  64x53x47 -> 164cm/26.57kg)가 3단계 접수확정 버튼을 disabled로 막는 것,
+  "처음으로" 리셋을 전부 확인했다. 터치 대상 44px 이상 - 입력칸 48px,
+  하단 버튼 50px, 체크박스 탭 영역(label로 감싼 행) 44px를 실측했고,
+  처음엔 체크박스 자체만 24px라 탭이 안 먹던 것을 label로 감싸 44px 행
+  전체가 토글되도록 고쳤다(수정 후 재확인 완료). 콘솔 에러 0.
+-->
+<style>
+  :root {
+    --brand: #14508c; --brand-dark: #0d3a66; --accent: #e0692a;
+    --bg: #eef1f4; --card: #ffffff; --border: #d7dde3; --text: #1c2733; --muted: #667485;
+    --ok-bg: #eef7f0; --ok-border: #b9dfc2;
+    --bad-bg: #fbeceb; --bad-border: #eab6b0; --bad-text: #c0392b;
+    --warn-bg: #fff8e6; --warn-border: #f0d68a; --warn-text: #8a6d1f;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; width: 100%; overflow-x: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+  }
+  .app {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .topbar {
+    background: var(--brand); color: #fff;
+    padding: 14px 18px 12px;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .topbar .brand { font-size: 18px; font-weight: 800; }
+  .topbar .sub { font-size: 11.5px; opacity: .85; margin-top: 2px; }
+  .progress-wrap { display: flex; gap: 6px; margin-top: 10px; }
+  .progress-dot { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.28); }
+  .progress-dot.done { background: var(--accent); }
+  .progress-dot.now { background: #fff; }
+  .step-label { font-size: 11.5px; opacity: .9; margin-top: 6px; }
+
+  main { flex: 1; padding: 18px 18px 100px; }
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .step-title { font-size: 17px; font-weight: 800; margin: 0 0 4px; }
+  .step-desc { font-size: 12.5px; color: var(--muted); margin: 0 0 18px; line-height: 1.5; }
+
+  label { display: block; font-size: 13.5px; font-weight: 700; color: var(--muted); margin: 16px 0 7px; }
+  label:first-of-type { margin-top: 0; }
+  .req { color: var(--bad-text); font-weight: 700; font-size: 11px; margin-left: 2px; }
+
+  input[type="text"], input[type="number"], select {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 16px;
+    background: #fff;
+    font-family: inherit;
+    color: var(--text);
+  }
+  input:focus, select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+  select { appearance: auto; }
+
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .row3 input { padding-left: 8px; padding-right: 6px; font-size: 15px; text-align: center; }
+
+  .field-note { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+  .inline-warning { min-height: 18px; margin-top: 8px; }
+  .badge { display: inline-block; padding: 6px 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.5; }
+  .badge.bad { background: var(--bad-bg); border: 1px solid var(--bad-border); color: var(--bad-text); }
+  .badge.warn { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); }
+
+  .soft-confirm { margin-top: 12px; background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: var(--warn-text); }
+  .soft-confirm .cb-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; min-height: 44px; }
+  .soft-confirm input[type=checkbox] { width: 24px; height: 24px; flex: none; }
+  .soft-confirm .cb-row span { font-weight: 700; color: var(--text); font-size: 13.5px; }
+
+  .err-box { margin-top: 14px; }
+  .err-box .badge.bad { display: block; }
+  .err-box ul { margin: 0; padding-left: 0; list-style: none; }
+  .err-box li { margin-top: 6px; }
+
+  .summary-card { background: #f6f8fa; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-top: 4px; }
+  .summary-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13.5px; padding: 7px 0; border-bottom: 1px dashed var(--border); }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .k { color: var(--muted); flex: none; }
+  .summary-row .v { font-weight: 700; text-align: right; }
+  .calc-note { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.6; background: #fff; border: 1px dashed var(--border); border-radius: 8px; padding: 10px 12px; }
+  .price-big { font-size: 30px; font-weight: 800; color: var(--brand-dark); text-align: center; margin: 6px 0 14px; }
+
+  .reject-box { background: var(--bad-bg); border: 1px solid var(--bad-border); border-radius: 12px; padding: 16px; font-size: 13.5px; line-height: 1.6; }
+  .reject-box strong { color: var(--bad-text); }
+
+  .calc-pending { color: var(--muted); font-size: 13px; text-align: center; padding: 40px 10px; border: 1px dashed var(--border); border-radius: 10px; }
+
+  .bottom-nav {
+    position: sticky; bottom: 0; left: 0; right: 0;
+    background: #fff; border-top: 1px solid var(--border);
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    display: flex; gap: 10px;
+    max-width: 480px; margin: 0 auto; width: 100%;
+  }
+  .btn { min-height: 50px; border-radius: 12px; font-size: 15.5px; font-weight: 800; border: 1.5px solid var(--border); background: #fff; color: var(--text); cursor: pointer; }
+  .btn.primary { flex: 2; background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn.primary:disabled { background: #a9b6c4; border-color: #a9b6c4; cursor: not-allowed; }
+  .btn.secondary { flex: 1; }
+  .btn.primary:not(:disabled):active { background: var(--brand-dark); }
+
+  .receipt-wrap { text-align: center; padding-top: 10px; }
+  .receipt-check { font-size: 15px; font-weight: 800; color: var(--brand-dark); }
+  .receipt-tno { font-size: 24px; font-weight: 800; color: var(--brand-dark); margin: 10px 0 4px; }
+  .receipt-price { font-size: 30px; font-weight: 800; margin: 14px 0; }
+
+  table.mini-rate { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+  table.mini-rate th, table.mini-rate td { border: 1px solid var(--border); padding: 5px 4px; text-align: center; }
+  table.mini-rate th { background: #eef2f6; }
+  table.mini-rate tr.hit td:first-child { background: #dbe9f7; font-weight: 700; }
+  table.mini-rate td.hit-cell { background: var(--brand); color: #fff; font-weight: 800; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">두두택배 접수</div>
+    <div class="sub">모바일판 - 폰으로 접수</div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-dot" data-n="1"></div>
+      <div class="progress-dot" data-n="2"></div>
+      <div class="progress-dot" data-n="3"></div>
+    </div>
+    <div class="step-label" id="stepLabel">1/3 - 보내는 분 · 받는 분 · 지역</div>
+  </div>
+
+  <main>
+    <!-- STEP 1: 보내는분 / 받는분 / 지역 -->
+    <section class="step active" id="step-1">
+      <div class="step-title">누가, 어디로</div>
+      <div class="step-desc">접수 지점과 도착 지역은 운송장 발급과 권역 계산에 씁니다.</div>
+
+      <label for="branch">접수 지점 <span class="req">필수</span></label>
+      <input type="text" id="branch" placeholder="서울지점" autocomplete="off">
+      <p class="hint">등록된 지점: 서울지점, 용산지점, 대전지점, 진주지점, 거제지점, 울산지점.</p>
+
+      <label for="senderName">보내는 분 이름 <span class="req">필수</span></label>
+      <input type="text" id="senderName" placeholder="예: 김민준">
+
+      <label for="receiverName">받는 분 이름 <span class="req">필수</span></label>
+      <input type="text" id="receiverName" placeholder="예: 이서연">
+
+      <label for="receiverArea">도착 지역 <span class="req">필수</span></label>
+      <input type="text" id="receiverArea" placeholder="서울" autocomplete="off">
+      <p class="hint">제주는 제주 권역, 울릉도·백령도 등 섬은 도서산간, 나머지는 일반입니다.</p>
+      <div class="field-note">※ 거제・진주를 선택해도 권역은 일반입니다(규정 §2 - 다리・도로로 연결된 일반 지역).</div>
+
+      <div class="err-box" id="err-1"></div>
+    </section>
+
+    <!-- STEP 2: 물품 정보 -->
+    <section class="step" id="step-2">
+      <div class="step-title">무엇을, 얼마나</div>
+      <div class="step-desc">물품명은 입력하는 즉시 금지 품목인지 검사합니다(규정 §5).</div>
+
+      <label for="itemName">물품명 <span class="req">필수</span></label>
+      <input type="text" id="itemName" placeholder="예: 이불">
+      <div class="inline-warning" id="bannedWarning"></div>
+
+      <div class="soft-confirm" id="softConfirmBox" style="display:none">
+        <div id="softConfirmText"></div>
+        <label class="cb-row" for="staffConfirm"><input type="checkbox" id="staffConfirm"><span>직원이 확인했습니다 (50만원 이하)</span></label>
+      </div>
+
+      <label for="weightKg">실제 무게 (kg) <span class="req">필수</span></label>
+      <input type="number" id="weightKg" placeholder="예: 3.0" step="any">
+
+      <label>가로 x 세로 x 높이 (cm) <span class="req">필수</span></label>
+      <div class="row3">
+        <input type="number" id="widthCm" placeholder="가로" step="any">
+        <input type="number" id="heightCm" placeholder="세로" step="any">
+        <input type="number" id="depthCm" placeholder="높이" step="any">
+      </div>
+
+      <div class="err-box" id="err-2"></div>
+    </section>
+
+    <!-- STEP 3: 요금 확인 -->
+    <section class="step" id="step-3">
+      <div class="step-title">요금 확인</div>
+      <div class="step-desc">접수 확정을 누르기 전 마지막 확인입니다.</div>
+      <div id="calcArea">
+        <div class="calc-pending">이전 단계를 먼저 채워주세요.</div>
+      </div>
+    </section>
+
+    <!-- STEP 4: 완료 -->
+    <section class="step" id="step-4">
+      <div class="receipt-wrap">
+        <div class="receipt-check">접수가 완료됐습니다</div>
+        <div class="receipt-tno" id="rcTno"></div>
+        <div class="summary-card" id="rcSummary"></div>
+        <div class="receipt-price" id="rcPrice"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="bottom-nav" id="nav1">
+    <button type="button" class="btn secondary" id="backBtn1" disabled>이전</button>
+    <button type="button" class="btn primary" id="nextBtn1" onclick="tryNext()">다음</button>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // 계산 정본 - F_한장완성판.html과 동일한 02_접수규정.md §1-9 로직.
+  // 화면만 다르고 규정 수치는 완전히 같다(같은 setup.sql 5샘플로 검산).
+  // ============================================================
+  const RATE_TABLE = [
+    { grade: '극소형', maxSum: 60,  maxWeight: 2,  price: { 일반: 3500, 제주: 6500,  도서산간: 8500 } },
+    { grade: '소형',   maxSum: 80,  maxWeight: 5,  price: { 일반: 4000, 제주: 7000,  도서산간: 9000 } },
+    { grade: '중형',   maxSum: 120, maxWeight: 15, price: { 일반: 6000, 제주: 9000,  도서산간: 11000 } },
+    { grade: '대형',   maxSum: 160, maxWeight: 25, price: { 일반: 9000, 제주: 12000, 도서산간: 14000 } },
+  ];
+  const ETA_BUSINESS_DAYS = { 일반: 1, 제주: 2, 도서산간: 3 };
+
+  // 규정 §2 - 거제・진주는 다리・도로로 연결된 일반 지역이라(§2 "주의" 문장)
+  // 이 판정 목록 어디에도 없다. 기본값 '일반'로 자연히 떨어진다.
+  const ISLAND_AREAS = ['울릉도', '백령도', '흑산도', '거문도', '추자도'];
+  // 260807 지점을 텍스트 입력으로 바꾸면서 추가. 원래는 select option에 코드가 박혀 있었다.
+  const BRANCHES = [
+    { code: '11', name: '서울지점' }, { code: '12', name: '용산지점' },
+    { code: '21', name: '대전지점' }, { code: '31', name: '진주지점' },
+    { code: '32', name: '거제지점' }, { code: '41', name: '울산지점' },
+  ];
+  // 이름에서 코드를 찾는다. 목록에 없으면 00.
+  function branchCodeOf(name) {
+    const hit = BRANCHES.find(b => b.name === name);
+    return hit ? hit.code : '00';
+  }
+  function determineRegion(area) {
+    if (area === '제주') return '제주';
+    if (ISLAND_AREAS.includes(area)) return '도서산간';
+    return '일반';
+  }
+  function determineGrade(sumCm, billedWeightKg) {
+    for (const tier of RATE_TABLE) {
+      if (sumCm <= tier.maxSum && billedWeightKg <= tier.maxWeight) return tier.grade;
+    }
+    return null;
+  }
+
+  function addBusinessDays(fromDate, days) {
+    const d = new Date(fromDate);
+    let added = 0;
+    while (added < days) {
+      d.setDate(d.getDate() + 1);
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) added++;
+    }
+    return d;
+  }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function formatDateISO(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+  const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+  // 규정 §5 7개 분류 21개 키워드. "시계"만 50만원 초과 조건부라 소프트
+  // 차단(직원 확인)으로 분리했다 - F_한장완성판.html과 동일 목록.
+  const BANNED_RULES = [
+    { category: '금전',   keyword: '현금' },
+    { category: '금전',   keyword: '상품권' },
+    { category: '금전',   keyword: '유가증권' },
+    { category: '귀중품', keyword: '금' },
+    { category: '귀중품', keyword: '은' },
+    { category: '귀중품', keyword: '보석' },
+    { category: '귀중품', keyword: '시계', condition: '50만원 초과 시' },
+    { category: '인화성', keyword: '라이터' },
+    { category: '인화성', keyword: '부탄가스' },
+    { category: '인화성', keyword: '페인트' },
+    { category: '인화성', keyword: '신나' },
+    { category: '인화성', keyword: '알코올' },
+    { category: '배터리', keyword: '보조배터리' },
+    { category: '배터리', keyword: '리튬배터리' },
+    { category: '생물',   keyword: '동물' },
+    { category: '생물',   keyword: '식물' },
+    { category: '온도',   keyword: '냉장' },
+    { category: '온도',   keyword: '냉동' },
+    { category: '기타',   keyword: '주류' },
+    { category: '기타',   keyword: '의약품' },
+    { category: '기타',   keyword: '총포' },
+    { category: '기타',   keyword: '도검' },
+  ];
+  function checkBanned(name) {
+    const s = (name || '').trim();
+    if (!s) return { hardHits: [], softHits: [] };
+    const hits = BANNED_RULES.filter(r => s.includes(r.keyword));
+    return { hardHits: hits.filter(h => !h.condition), softHits: hits.filter(h => h.condition) };
+  }
+
+  const seqByBranch = {};
+  const issuedTrackingNos = new Set();
+  function nextTrackingNo(branchCode) {
+    let n = (seqByBranch[branchCode] || 0) + 1;
+    let no = branchCode + String(n).padStart(8, '0');
+    while (issuedTrackingNos.has(no)) { n += 1; no = branchCode + String(n).padStart(8, '0'); }
+    seqByBranch[branchCode] = n;
+    issuedTrackingNos.add(no);
+    return no;
+  }
+
+  function formatWon(n) {
+    if (n === null || n === undefined || isNaN(n)) return '-';
+    return n.toLocaleString('ko-KR') + '원';
+  }
+  function getNumeric(id) {
+    const raw = document.getElementById(id).value;
+    if (raw === '' || raw === null || raw === undefined) return null;
+    const n = parseFloat(raw);
+    if (isNaN(n) || n <= 0) return null;
+    return n;
+  }
+
+  // ============================================================
+  // 단계 진행 (3단계 + 완료 화면) - 하단 고정 버튼으로 한 손 조작
+  // ============================================================
+  let currentStep = 1;
+  const savedShipments = [];
+
+  function renderBannedWarning() {
+    const ban = checkBanned(document.getElementById('itemName').value);
+    const el = document.getElementById('bannedWarning');
+    const box = document.getElementById('softConfirmBox');
+    if (ban.hardHits.length > 0) {
+      const h = ban.hardHits[0];
+      el.innerHTML = `<span class="badge bad">접수 불가 품목 - ${h.category} "${h.keyword}"(규정 §5)</span>`;
+      box.style.display = 'none';
+    } else if (ban.softHits.length > 0) {
+      const h = ban.softHits[0];
+      el.innerHTML = `<span class="badge warn">"${h.keyword}"는 ${h.condition} 금지 품목(규정 §5)</span>`;
+      box.style.display = 'block';
+      document.getElementById('softConfirmText').textContent =
+        `"${h.keyword}" - ${h.condition} 금지 품목(규정 §5 귀중품). 50만원 이하 확인 시 체크하세요.`;
+    } else {
+      el.innerHTML = '';
+      box.style.display = 'none';
+    }
+    return ban;
+  }
+  document.getElementById('itemName').addEventListener('input', renderBannedWarning);
+  document.getElementById('staffConfirm').addEventListener('change', function(){});
+
+  function showErr(boxId, msgs) {
+    const box = document.getElementById(boxId);
+    if (!msgs.length) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="badge bad"><ul>' + msgs.map(m => `<li>${m}</li>`).join('') + '</ul></div>';
+  }
+
+  function validateStep1() {
+    const errs = [];
+    if (!document.getElementById('branch').value) errs.push('접수 지점을 선택하세요.');
+    if (!document.getElementById('senderName').value.trim()) errs.push('보내는 분 이름을 입력하세요.');
+    if (!document.getElementById('receiverName').value.trim()) errs.push('받는 분 이름을 입력하세요.');
+    if (!document.getElementById('receiverArea').value) errs.push('도착 지역을 선택하세요.');
+    return errs;
+  }
+  function validateStep2() {
+    const errs = [];
+    const itemName = document.getElementById('itemName').value.trim();
+    if (!itemName) errs.push('물품명을 입력하세요.');
+    const ban = checkBanned(itemName);
+    if (ban.hardHits.length > 0) {
+      const h = ban.hardHits[0];
+      errs.push(`접수 불가 품목입니다 - ${h.category} "${h.keyword}"(규정 §5).`);
+    }
+    if (ban.softHits.length > 0 && !document.getElementById('staffConfirm').checked) {
+      errs.push('금지 품목 확인 체크가 필요합니다.');
+    }
+    if (getNumeric('weightKg') === null) errs.push('실제 무게를 0보다 큰 숫자로 입력하세요.');
+    if (getNumeric('widthCm') === null || getNumeric('heightCm') === null || getNumeric('depthCm') === null) {
+      errs.push('가로・세로・높이를 모두 0보다 큰 숫자로 입력하세요.');
+    }
+    return errs;
+  }
+
+  function computeCalc() {
+    const weight = getNumeric('weightKg');
+    const width = getNumeric('widthCm');
+    const height = getNumeric('heightCm');
+    const depth = getNumeric('depthCm');
+    const area = document.getElementById('receiverArea').value;
+    if (weight === null || width === null || height === null || depth === null || !area) return null;
+
+    const volumeWeightKg = (width * height * depth) / 6000;
+    const billedWeightKg = Math.max(weight, volumeWeightKg);
+    const sumCm = width + height + depth;
+    const grade = determineGrade(sumCm, billedWeightKg);
+    const region = determineRegion(area);
+    const tier = grade ? RATE_TABLE.find(t => t.grade === grade) : null;
+    const price = tier ? tier.price[region] : null;
+    const etaDate = tier ? formatDateISO(addBusinessDays(new Date(), ETA_BUSINESS_DAYS[region])) : null;
+    return { weight, width, height, depth, volumeWeightKg, billedWeightKg, sumCm, grade, region, price, etaDate, area };
+  }
+
+  function renderRateMini(matchedGrade, matchedRegion) {
+    return `<table class="mini-rate">
+      <thead><tr><th>등급</th><th>일반</th><th>제주</th><th>도서산간</th></tr></thead>
+      <tbody>${RATE_TABLE.map(t => {
+        const hit = t.grade === matchedGrade;
+        function cell(r) { return `<td class="${hit && matchedRegion===r ? 'hit-cell' : ''}">${t.price[r].toLocaleString('ko-KR')}</td>`; }
+        return `<tr class="${hit ? 'hit' : ''}"><td>${t.grade}</td>${cell('일반')}${cell('제주')}${cell('도서산간')}</tr>`;
+      }).join('')}</tbody></table>`;
+  }
+
+  function renderStep3() {
+    const c = computeCalc();
+    const area = document.getElementById('calcArea');
+    if (!c) { area.innerHTML = '<div class="calc-pending">이전 단계를 먼저 채워주세요.</div>'; return; }
+
+    if (!c.grade) {
+      area.innerHTML = `<div class="reject-box">
+        <strong>접수할 수 없습니다.</strong><br>
+        규정 §3 - 대형 상한(세 변의 합 160cm 또는 요금 무게 25kg)을 넘었습니다.<br><br>
+        지금 값 - 세 변의 합 ${c.sumCm}cm, 요금 무게 ${c.billedWeightKg.toFixed(2)}kg.<br>
+        "이전"으로 돌아가 무게・크기를 다시 확인하세요.
+      </div>`;
+      setNav3(false);
+      return;
+    }
+
+    const specialNote = (c.area === '진주' || c.area === '거제')
+      ? '<br>※ ' + c.area + '는 다리・도로로 연결된 일반 지역입니다(규정 §2, 도서산간 아님).'
+      : '';
+
+    area.innerHTML = `
+      <div class="price-big">${formatWon(c.price)}</div>
+      <div class="summary-card">
+        <div class="summary-row"><span class="k">받는 분</span><span class="v">${document.getElementById('receiverName').value.trim()}</span></div>
+        <div class="summary-row"><span class="k">도착 지역 / 권역</span><span class="v">${c.area} / ${c.region}</span></div>
+        <div class="summary-row"><span class="k">물품명</span><span class="v">${document.getElementById('itemName').value.trim()}</span></div>
+        <div class="summary-row"><span class="k">요금 무게</span><span class="v">${c.billedWeightKg.toFixed(2)}kg</span></div>
+        <div class="summary-row"><span class="k">크기 등급</span><span class="v">${c.grade}</span></div>
+        <div class="summary-row"><span class="k">도착 예정일</span><span class="v">${c.etaDate}</span></div>
+      </div>
+      <div class="calc-note">
+        부피 무게 = 가로${c.width} x 세로${c.height} x 높이${c.depth} / 6000 = ${c.volumeWeightKg.toFixed(2)}kg<br>
+        요금 무게 = 실제 ${c.weight}kg과 부피 ${c.volumeWeightKg.toFixed(2)}kg 중 큰 값 = ${c.billedWeightKg.toFixed(2)}kg<br>
+        세 변의 합 = ${c.width}+${c.height}+${c.depth} = ${c.sumCm}cm -> ${c.grade}${specialNote}
+      </div>
+      ${renderRateMini(c.grade, c.region)}
+    `;
+    setNav3(true);
+  }
+
+  function setNav3(ok) {
+    document.getElementById('nextBtn1').textContent = '접수 확정';
+    document.getElementById('nextBtn1').disabled = !ok;
+  }
+
+  function updateProgress() {
+    document.querySelectorAll('.progress-dot').forEach(d => {
+      const n = parseInt(d.dataset.n, 10);
+      d.classList.toggle('done', n < currentStep);
+      d.classList.toggle('now', n === currentStep && currentStep <= 3);
+    });
+    const labels = { 1: '1/3 - 보내는 분 · 받는 분 · 지역', 2: '2/3 - 물품 정보', 3: '3/3 - 요금 확인', 4: '접수 완료' };
+    document.getElementById('stepLabel').textContent = labels[currentStep];
+    document.getElementById('progressWrap').style.display = currentStep === 4 ? 'none' : 'flex';
+  }
+
+  function goStep(n) {
+    document.querySelectorAll('.step').forEach((el, i) => el.classList.toggle('active', i === (n - 1)));
+    currentStep = n;
+    updateProgress();
+    document.getElementById('backBtn1').disabled = (n === 1 || n === 4);
+    document.getElementById('backBtn1').style.visibility = (n === 4) ? 'hidden' : 'visible';
+    if (n === 3) { renderStep3(); }
+    if (n === 1 || n === 2) { document.getElementById('nextBtn1').textContent = '다음'; document.getElementById('nextBtn1').disabled = false; }
+    if (n === 4) { document.getElementById('nextBtn1').textContent = '처음으로'; document.getElementById('nextBtn1').disabled = false; }
+    window.scrollTo(0, 0);
+  }
+
+  function tryNext() {
+    if (currentStep === 1) {
+      const errs = validateStep1();
+      showErr('err-1', errs);
+      if (errs.length) return;
+      goStep(2);
+    } else if (currentStep === 2) {
+      const errs = validateStep2();
+      showErr('err-2', errs);
+      if (errs.length) return;
+      goStep(3);
+    } else if (currentStep === 3) {
+      submitShipment();
+    } else if (currentStep === 4) {
+      resetAll();
+    }
+  }
+  function tryBack() {
+    if (currentStep > 1) goStep(currentStep - 1);
+  }
+  document.getElementById('backBtn1').addEventListener('click', tryBack);
+
+  function submitShipment() {
+    const c = computeCalc();
+    if (!c || !c.grade) return;
+    const branchName = document.getElementById('branch').value.trim();
+    const branchCode = branchCodeOf(branchName);
+    const trackingNo = nextTrackingNo(branchCode);
+
+    const record = {
+      trackingNo, branchName,
+      senderName: document.getElementById('senderName').value.trim(),
+      receiverName: document.getElementById('receiverName').value.trim(),
+      receiverArea: c.area, regionType: c.region,
+      itemName: document.getElementById('itemName').value.trim(),
+      billedWeightKg: Math.round(c.billedWeightKg * 10) / 10,
+      sizeGrade: c.grade, price: c.price, etaDate: c.etaDate,
+    };
+    savedShipments.push(record);
+
+    document.getElementById('rcTno').textContent = '운송장번호 ' + record.trackingNo;
+    document.getElementById('rcSummary').innerHTML = `
+      <div class="summary-row"><span class="k">접수 지점</span><span class="v">${record.branchName}</span></div>
+      <div class="summary-row"><span class="k">보내는 분</span><span class="v">${record.senderName}</span></div>
+      <div class="summary-row"><span class="k">받는 분</span><span class="v">${record.receiverName}</span></div>
+      <div class="summary-row"><span class="k">도착 지역</span><span class="v">${record.receiverArea}(${record.regionType})</span></div>
+      <div class="summary-row"><span class="k">물품 / 등급</span><span class="v">${record.itemName} / ${record.sizeGrade}</span></div>
+      <div class="summary-row"><span class="k">도착 예정일</span><span class="v">${record.etaDate}</span></div>
+    `;
+    document.getElementById('rcPrice').textContent = formatWon(record.price);
+    goStep(4);
+  }
+
+  function resetAll() {
+    ['senderName','receiverName','itemName','weightKg','widthCm','heightCm','depthCm'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('branch').value = '';
+    document.getElementById('receiverArea').value = '';
+    document.getElementById('staffConfirm').checked = false;
+    document.getElementById('softConfirmBox').style.display = 'none';
+    document.getElementById('bannedWarning').innerHTML = '';
+    showErr('err-1', []); showErr('err-2', []);
+    goStep(1);
+  }
+
+  updateProgress();
+</script>
+</body>
+</html>

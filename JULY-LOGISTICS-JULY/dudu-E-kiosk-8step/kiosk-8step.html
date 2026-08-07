@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>두두택배 접수 - 실물 8단계판</title>
+<!--
+========================================================================
+두두택배 접수 키오스크 - E. 실물 8단계판
+========================================================================
+작성 260807. CUpost 실물 키오스크 8단계 진행바 구조를 실측 캡처 기준으로
+재현하고, 계산 로직(요금표/금지품목/한도)은 두두택배 접수규정(가상 회사,
+infra/day14-starter/02_접수규정.md)을 그대로 따른 완성판이다.
+
+주의 - infra/day15-stock/ui/D_실물클론_Route.html은 다른 워커가 같은 시간에
+수리 중이라 이 파일을 만드는 동안 한 번도 열어보지 않았다. 아래 근거는 전부
+UI_CAPTURE_LEDGER.md, FUNCSPEC/IA/FLOW 문서, 02_접수규정.md, setup.sql,
+그리고 ui/caps/ 아래 이미지 파일을 이번 세션에서 직접 열람한 결과다.
+D 클론과 화면이 비슷해 보이는 지점이 있다면 그것은 같은 CU 캡처와 같은
+규정을 각자 따로 읽고 만들었기 때문이지, D 코드를 옮긴 것이 아니다.
+
+========================================================================
+근거 대응표 (화면 단계 -> 근거 캡처/문서 -> 반영 내용 -> 실물과 다른 점)
+========================================================================
+
+[진행바 전체(8칸)]
+근거 - ui/caps/cupost_official/cu-info-listimg02.png ~ listimg06.png(C02~C06)
+상단에서 "접수구분 / 무게측정 / 상품 종류 선택 / 보내는사람 등록 /
+받는 사람 등록 / 결제 방법 선택 / 운임확인 / 운송장 출력 및 부착" 8칸
+브레드크럼을 직접 육안 판독했다(5장 전부 동일 8칸 확인). 이 파일이 쓰는
+8단계 라벨은 여기서 그대로 옮긴 것이며 UI_CAPTURE_LEDGER.md 34-39행 표기와
+정확히 일치한다.
+실물과 다른 점 - 캡처 C01(01단계로 배치한 화면)에는 진행바 자체가 없다
+(원장 34행 "진행바 없음" 명시). 이 파일은 UI 일관성을 위해 8단계 전부에
+진행바를 표시하는 쪽을 택했다 - 지어낸 것이 아니라 "01 화면 실물에는
+원래 진행바가 없다"는 사실 자체를 이 주석에 남겨 둔다. 01~08 번호도
+캡처엔 없고(순서만 있음) 이 파일이 표시 편의상 붙였다.
+
+[01 접수구분]
+근거 - ui/caps/cupost_official/cu-info-listimg01.png(C01). 4버튼 레이아웃
+"비회원 택배 접수 / 회원 택배 접수 / 점간 택배 접수(접수하기) / 쇼핑몰
+접수(승인번호 입력)", 수거마감 안내 배너("평일 17시/토요일 12시 - 교통
+상황에 따라 수거 시간이 변경될 수 있습니다") 문구를 그대로 차용했다.
+대안 근거(미채택, 존재만 기록) - ui/caps/youtube/yt_A_025s.png,
+yt_F_020s.png(C15/C38) - "현장접수 / 비회원 예약건 접수 / 예약 문자 전송"
+3버튼 화면. 원장은 이 화면과 C01의 관계를 "미확인"이라 적었다(원장 134행).
+C01을 택한 이유는 원장 자신의 "8단계별 캡처 매핑" 표(87행)가 C01을
+"가장 선명한 것"으로 이미 골라 놓았기 때문이다.
+근거 없음/규정 기반 - 회원/비회원/점간 접수의 로직 차이는 두두택배
+규정에 없다. 이 데모는 셋 다 동일하게 다음 단계로 진행시킨다. 쇼핑몰
+접수는 승인번호 절차가 규정에 없어 안내 모달만 띄우고 진행을 막았다.
+
+[02 무게측정]
+근거 - ui/caps/cupost_official/cu-info-listimg02.png(C02). 저울 아이콘,
+색상 게이지(빨강-초록-파랑), 중량 숫자 표시, "다시측정" 버튼 레이아웃을
+그대로 차용했다.
+실물과 다른 점(명시) -
+ (1) CU 실물 안내문 "상품은 30Kg, 곡물류 20Kg까지 접수 가능"은 두두택배
+     규정 3절의 대형 상한(25kg)으로 교체했다. 이 데모는 두두택배 회사이지
+     CU가 아니므로 CU의 중량 상한을 그대로 쓰지 않는다.
+ (2) 실물은 저울이 자동으로 측정해 사람이 숫자를 못 친다(원장 C02/C39
+     행의 "중량 허위시 수거 거부" 경고 문구가 이를 뒷받침). 이 데모는
+     브라우저에 실물 저울이 없으므로 숫자를 직접 입력하는 input으로
+     대체했다 - 이 파일에서 실물과 가장 뚜렷하게 다른 지점이다.
+근거 없음/규정 기반 추정 - 가로·세로·높이(cm) 입력 3칸은 CU 실물 캡처
+46장 어디에도 없다(치수 입력 화면 자체가 확인되지 않음). 02_접수규정.md
+4절(부피 무게 = 가로x세로x높이/6000)이 계산에 반드시 필요해 이 화면에
+추가했다 - 근거 없음, 규정 기반 추정.
+
+[03 상품 종류 선택]
+근거 - ui/caps/cupost_official/cu-info-listimg03.png(C03),
+ui/caps/youtube/yt_A_075s.png(C17, 실물 촬영으로 C03과 배치 일치 교차
+확인). 8아이콘 그리드(의류/잡화·서적류/가전제품류/과일류/곡물류/한약류/
+김치·식품류/서신·서류)와 "이용불가상품" 안내 박스를 그대로 차용했다.
+근거 없음/규정 기반 추정 - 물품명 자유입력 칸은 8아이콘 그리드 어디에도
+없다(그리드는 대분류 단일 선택일 뿐 키워드 매칭 대상이 아니다).
+02_접수규정.md 5절(금지 품목 7분류)·8절(계산 순서 1번 = 금지 품목 검사)을
+실행하려면 자유 텍스트 물품명이 있어야 해서 추가했다 - 근거 없음, 규정
+기반 추정.
+확인됐으나 미구현 - ui/caps/youtube/yt_A_100s.png(C18),
+ui/caps/youtube/yt_F_070s.png(C40)에서 "물품가액 입력" 모달(만원 단위
+키패드)을 확인했다. 두두택배 규정 7절의 필수 입력 6종에 물품가액이 없어
+계산에 쓸 자리가 없으므로 이 파일에는 넣지 않았다 - 근거는 있으나
+의도적으로 미구현.
+
+[04 보내는사람 등록]
+근거 - ui/caps/cupost_official/cu-info-listimg04.png(C04). 성명/전화번호/
+주소(+"주소검색" 버튼)/상세주소 4필드, 화면 키보드(자모 배열 + 번지/
+아파트/동/호/(주) 퀵버튼 + 지우기 버튼), "수정/확인" 버튼 쌍을 그대로
+차용했다.
+실물과 다른 점(명시) - 화면 키보드는 자모 배열의 존재와 퀵버튼 구성만
+재현했다. 실제 한글 초성·중성·종성 조합(IME)은 구현하지 않았다 - 버튼을
+누르면 낱자가 그대로 삽입된다(완성형 조합 없음). 실제 입력은 물리
+키보드로 타이핑하는 쪽을 기준으로 만들었고, 화면 키보드는 보조 장식이다.
+근거 없음/규정 기반 추정 - "접수 지점" 선택(6개 지점 중 하나)은 CU 실물
+04 화면에 없다(실제 CU 키오스크는 기기 자체가 매장에 고정 설치돼 있어
+손님이 지점을 고를 필요가 없을 것으로 추정). 02_접수규정.md 9절(운송장
+번호 앞 2자리 = 접수 지점 코드)을 구현하려면 이 데모 안에서 어느
+지점인지 알아야 해서 04 화면에 추가했다 - 근거 없음, 규정 9절 기반 추정.
+
+[05 받는 사람 등록]
+근거 - 정면 캡처 없음. UI_CAPTURE_LEDGER.md 91행이 "05 받는사람등록 -
+0장 정면 확보, 1장 간접 후보"라고 명시한 그대로다. 이 화면은
+(1) C04(04 화면)와 구조가 대칭일 것이라는 원장 자신의 추정(55행 "04와
+동일 폼 구조 추정"), (2) ui/caps/cupost_official/cu-info-listimg06.png
+(C06)의 받는사람 요약 카드가 이름/주소/연락처 3필드로 구성된 것(간접
+확인) - 이 둘을 근거로 04와 동일한 필드 구성을 재사용했다.
+근거 없음/규정 기반 추정 - "배송 권역"(일반/제주/도서산간) select는 05
+실물 캡처 자체가 없어 CU 쪽 대응 여부가 미확인이다. 02_접수규정.md 2절
+(권역 3구분)과 3절(권역별 요금)이 계산에 반드시 필요해 추가했다 - 근거
+없음, 규정 2절 기반 추정.
+
+[06 결제 방법 선택]
+근거 - ui/caps/cupost_official/cu-info-listimg05.png(C05, 착불 상태),
+ui/caps/youtube/yt_A_125s.png(C19, 선불 상태). 선불/착불 토글 UI를 그대로
+차용했다.
+실물과 다른 점(명시) - CU 실물은 "기본운임 + 착불수수료(300원) +
+산간이용료 + 고액할증료" 4개 행으로 요금을 분해해서 보여준다. 두두택배
+접수규정 3절은 등급x권역 단일 값(요금표 하나)만 정의하고 착불수수료·
+산간이용료·고액할증료라는 항목 자체가 없다 - 그래서 이 분해 표는 쓰지
+않았다. 대신 규정대로 계산한 단일 금액만 미리보기로 보여준다. 선불/착불은
+두두택배 규정에 금액 차이가 없으므로(규정에 선불/착불 언급 자체가 없음)
+화면 UI로는 존재하되 계산에는 영향을 주지 않는다 - 근거 없음(두두택배
+규정에 없는 구분을 CU에서 그대로 차용).
+참고로 반영 - ui/caps/youtube/yt_C_015s.png(C24)에서 확인된 "착불 =
+도착해서 운임 지불 / 신용·선불 = 미리 결제"라는 실제 의미를 안내 문구로
+반영했다.
+
+[07 운임확인]
+근거 - ui/caps/cupost_official/cu-info-listimg06.png(C06). 운임/권역/
+결제방법 요약 + 상품정보 카드(수정 버튼) + 보내는 사람 카드(초록, 수정
+버튼) + 받는 사람 카드(파랑, 수정 버튼) + 개인정보 동의 체크 + "운송장
+출력" 버튼 - 카드 색과 배치를 그대로 차용했다(C06 캡처에서 "홍길동" 카드
+좌측 띠가 초록, "이순신" 카드 좌측 띠가 파랑임을 육안 확인).
+근거(문서) - 요금표 12칸 전체를 하단에 렌더링하고 해당 칸을 강조하는
+구조는 infra/day15-stock/docs/FUNCSPEC_두두택배_접수.md의 F-09 "출력"
+절 서술(159행 "하단에 요금표 전체를 렌더링하며 해당 등급 행을
+하이라이트")을 그대로 따랐다.
+근거(문서) - 대형 초과 접수불가 문구("접수 불가 / 대형 한도를 넘었습니다
+/ 세 변의 합 {sum}cm(한도 160cm) / 요금 무게 {wt}kg(한도 25kg) / 크기를
+줄이거나 나누어 접수하세요.")는
+infra/day15-stock/docs/FLOW_두두택배_접수.md 118행(다이어그램 3) 문구를
+그대로 옮겼다. 금지 품목 경고 문구("접수 불가 품목입니다 - {분류} /
+{키워드}" / "요금 계산 전에 거절합니다.")도 같은 문서 114행에서 그대로
+옮겼다.
+
+[08 운송장 출력 및 부착]
+근거 - ui/caps/youtube/yt_A_175s.png(C21, 유일한 정면 확보 - 원장 94행
+"조사문서가 화면 캡처 없음이라 적었던 단계, 이번에 해소"). "종료/다시
+출력/추가 접수" 3버튼과 각 설명문("추가 접수하실 물건이 없는 경우"/
+"운송장이 출력되지 않은 경우"/"추가로 접수할 상품이 있는 경우"), "운송장
+부착 방법" 안내(물건에 부착 = 핑크 라벨, 고객보관 = 보라 라벨, 2연 라벨
+구조)를 그대로 차용했다.
+실물과 다른 점(명시) - 라벨 위의 실제 글자·바코드는 캡처가 흐려 판독
+불가였다(원장 53행). 이 파일의 라벨 시각 요소(바코드 줄무늬, 위치 코드
+형식)는 실물 재현이 아니라 "라벨이 두 장으로 나뉜다"는 구조만 차용한
+장식이다 - 바코드 줄무늬는 CSS로 그린 장식이지 실제 바코드가 아니다.
+규정 반영(개선 지점) - 운송장 번호는 02_접수규정.md 9절(앞 2자리 접수
+지점 코드 + 뒤 8자리 접수 순번, "절대 겹치면 안 됩니다")을 그대로
+구현했다. sessionStorage에 지점별 순번 카운터를 두어 지점코드 2자리 +
+8자리 순번(0으로 왼쪽을 채움) = 10자리를 만든다. 브라우저 데모라 여러
+탭·기기에서 동시 접수하면 이 카운터가 서로 모르는 한계는 있다(단일
+세션 안에서는 중복이 나지 않는다).
+
+[8단계 밖 - 구현하지 않음]
+카운터 POS 결제 단계(ui/caps/youtube/yt_B_015s.png, yt_B_035s.png,
+yt_C_015s.png = C22/C23/C24)는 원장 스스로 "8단계 밖 신규"로 분류한
+화면이라(95행) 이 8단계 구현 범위에 포함하지 않았다. 결제 수단(신용카드/
+현금/모바일) 3종이 실제로 존재한다는 사실만 이 주석에 남긴다.
+
+[색상/스타일]
+헤더 진행바의 어두운 남색·보라 배경, 버튼의 보라색 그라데이션, 카드
+좌측 강조색(보내는사람=초록/받는사람=파랑), 착불 금액의 빨강 강조는
+캡처 전반(C02~C06)에서 육안 확인한 CU 실물 배색을 재현한 것이다.
+"CU"/"CUpost"/"CJ대한통운" 등 실제 상호·로고 문구는 전부 "두두택배"로
+교체했다(두두택배 = infra/day14-starter/02_접수규정.md의 가상 회사,
+실제 CU 상표를 이 화면에 그대로 노출하지 않기 위함).
+
+========================================================================
+계산 로직 출처 - infra/day14-starter/02_접수규정.md 3~9절 그대로(부피
+무게 공식, 4등급 x 3권역 요금표 12칸, 한 등급 상향 규칙, 금지 품목 7분류,
+대형 초과 접수불가, 운송장 번호 형식).
+샘플 검증 - infra/day14-starter/setup.sql 5건(이불/책/화장품/운동화/쌀)
+전건을 이 파일의 calcFee()로 재계산해 일치를 확인했다. 화장품·운동화는
+setup.sql 원본 샘플의 등급·요금 값 자체가 계산 오류라는 사실이
+FUNCSPEC_두두택배_접수.md F-09에 이미 기록돼 있어(다른 워커의 실측),
+원본 오류값이 아니라 규정 재계산값과 대조했다 - 화장품 극소형/3,500원,
+운동화 소형/4,000원(둘 다 이 작업 지시문이 준 정답과 일치).
+========================================================================
+-->
+<style>
+  :root{
+    --purple-900:#241335;
+    --purple-800:#3a2154;
+    --purple-700:#5b2a9e;
+    --purple-600:#7038c2;
+    --purple-500:#8a5cd6;
+    --purple-100:#efe7fb;
+    --lavender:#f4f1fb;
+    --card:#ffffff;
+    --border:#ddd4ee;
+    --text:#221a33;
+    --muted:#7a7291;
+    --green:#2e9e5b;
+    --green-bg:#eaf8f0;
+    --blue:#2f6fd1;
+    --blue-bg:#eaf1fc;
+    --red:#d9362b;
+    --red-bg:#fdeceb;
+    --amber-bg:#fff6e0;
+    --amber-border:#ecc669;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    background:#100b1a;
+    color:var(--text);
+  }
+  .stage{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .kiosk{
+    width:520px;
+    max-width:96vw;
+    height:900px;
+    max-height:96vh;
+    background:var(--lavender);
+    border-radius:26px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 30px 90px rgba(0,0,0,.55);
+    border:10px solid #0c0916;
+    position:relative;
+  }
+  .kiosk-header{
+    flex:0 0 auto;
+    background:linear-gradient(180deg,var(--purple-900),var(--purple-800));
+    color:#fff;
+    padding:14px 16px 12px;
+  }
+  .brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .brand{
+    font-size:18px;
+    font-weight:800;
+    letter-spacing:.5px;
+  }
+  .brand small{
+    display:block;
+    font-size:10px;
+    font-weight:500;
+    opacity:.65;
+    letter-spacing:1px;
+  }
+  .step-tag{
+    font-size:11px;
+    background:rgba(255,255,255,.14);
+    padding:4px 9px;
+    border-radius:20px;
+    font-weight:700;
+  }
+  .crumbs{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:5px;
+    margin-top:10px;
+  }
+  .crumb{
+    background:rgba(255,255,255,.07);
+    border-radius:8px;
+    padding:5px 3px 6px;
+    text-align:center;
+    line-height:1.25;
+    color:rgba(255,255,255,.5);
+  }
+  .crumb b{
+    display:block;
+    font-size:9.5px;
+    font-weight:800;
+    opacity:.85;
+  }
+  .crumb span{font-size:10.5px;font-weight:600;}
+  .crumb.active{background:var(--purple-500);color:#fff;box-shadow:0 2px 8px rgba(138,92,214,.5);}
+  .crumb.done{background:rgba(255,255,255,.18);color:#fff;}
+  .kiosk-body{
+    flex:1 1 auto;
+    overflow-y:auto;
+    padding:18px 16px 22px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .kiosk-footer{
+    flex:0 0 auto;
+    display:flex;
+    gap:10px;
+    padding:10px 16px;
+    background:#fff;
+    border-top:1px solid var(--border);
+  }
+  .screen-title{
+    font-size:19px;
+    font-weight:800;
+    color:var(--purple-700);
+    margin:2px 0 14px;
+    text-align:center;
+  }
+  .screen-sub{
+    font-size:12.5px;
+    color:var(--muted);
+    text-align:center;
+    margin-top:-10px;
+    margin-bottom:14px;
+  }
+  .notice-box{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:11px 13px;
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.55;
+    margin-bottom:14px;
+  }
+  .notice-box b{color:var(--text);}
+  .notice-info{background:var(--purple-100);border-color:#d9c8f4;color:#4a3a70;}
+  .notice-warn{background:var(--amber-bg);border-color:var(--amber-border);color:#6b551a;}
+  .notice-danger{background:var(--red-bg);border-color:#f3b4ae;color:#8a251c;}
+  .entry-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .btn{
+    font-family:inherit;
+    font-size:15.5px;
+    font-weight:700;
+    border-radius:13px;
+    border:none;
+    padding:14px 12px;
+    cursor:pointer;
+    min-height:56px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn-primary{background:linear-gradient(180deg,var(--purple-600),var(--purple-700));color:#fff;}
+  .btn-primary:disabled{background:#cabfe0;color:#8b81a4;cursor:not-allowed;}
+  .btn-ghost{background:#fff;border:1.5px solid var(--border);color:var(--text);}
+  .btn-danger{background:#fff;border:1.5px solid #f0b3ac;color:var(--red);}
+  .btn-block{width:100%;}
+  .btn-lg{min-height:64px;font-size:17px;}
+  .btn-entry{
+    background:#fff;
+    border:1.5px solid var(--border);
+    border-radius:14px;
+    padding:16px 10px;
+    min-height:96px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    color:var(--purple-700);
+    font-size:14.5px;
+    font-weight:800;
+    text-align:center;
+  }
+  .btn-entry small{font-size:10.5px;font-weight:500;color:var(--muted);}
+  .btn-entry:active{background:var(--purple-100);}
+  .btn-entry-shop{color:#8a6a1f;}
+  .field{margin-bottom:13px;}
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--text);
+    margin-bottom:5px;
+  }
+  .field label .req{color:var(--red);margin-left:2px;}
+  .field input,.field select{
+    width:100%;
+    font-family:inherit;
+    font-size:15px;
+    padding:12px 12px;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    background:#fff;
+    color:var(--text);
+  }
+  .field input:focus,.field select:focus{outline:2px solid var(--purple-500);outline-offset:0;}
+  .field input[readonly]{background:#faf8ff;color:var(--text);}
+  .addr-row{display:flex;gap:8px;}
+  .addr-row input{flex:1;}
+  .addr-row button{
+    flex:0 0 auto;
+    background:var(--purple-700);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:0 16px;
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .warn-line{font-size:12px;color:var(--red);font-weight:700;margin-top:-8px;margin-bottom:10px;min-height:15px;}
+  .scale-box{
+    background:#fff;
+    border:1.5px solid var(--border);
+    border-radius:16px;
+    padding:18px;
+    text-align:center;
+    margin-bottom:16px;
+  }
+  .scale-icon{font-size:34px;margin-bottom:6px;}
+  .gauge{
+    height:14px;
+    border-radius:8px;
+    background:linear-gradient(90deg,#e14b3a,#e8c93a,#3ab06a,#2f6fd1);
+    margin:14px 0 10px;
+    position:relative;
+  }
+  .gauge-label{font-size:11px;color:var(--muted);margin-bottom:2px;}
+  .digit-readout{
+    font-size:34px;
+    font-weight:800;
+    color:var(--purple-700);
+    font-variant-numeric:tabular-nums;
+  }
+  .digit-readout input{
+    width:150px;
+    text-align:right;
+    border:none;
+    border-bottom:3px solid var(--purple-500);
+    font-size:34px;
+    font-weight:800;
+    color:var(--purple-700);
+    background:transparent;
+    font-family:inherit;
+  }
+  .digit-readout input:focus{outline:none;}
+  .digit-unit{font-size:18px;font-weight:700;color:var(--muted);margin-left:4px;}
+  .icon-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:9px;
+    margin-bottom:14px;
+  }
+  .icon-cell{
+    background:#fff;
+    border:1.5px solid var(--border);
+    border-radius:13px;
+    padding:10px 4px;
+    text-align:center;
+    cursor:pointer;
+    min-height:74px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+  }
+  .icon-cell svg{width:22px;height:22px;color:var(--purple-600);}
+  .icon-cell span{font-size:10.8px;font-weight:700;color:var(--text);line-height:1.2;}
+  .icon-cell.selected{border-color:var(--purple-600);background:var(--purple-100);box-shadow:0 0 0 2px var(--purple-600) inset;}
+  .kbd{
+    background:#e9e3f6;
+    border-radius:14px;
+    padding:10px;
+    margin-top:6px;
+  }
+  .kbd-quick{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;}
+  .kbd-quick button{
+    flex:1 1 auto;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:8px 4px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--purple-700);
+    cursor:pointer;
+  }
+  .kbd-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
+  .kbd-key{
+    background:#fff;
+    border:1px solid #d5cce9;
+    border-radius:6px;
+    padding:8px 0;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--text);
+    cursor:pointer;
+    text-align:center;
+  }
+  .kbd-key.wide{grid-column:span 2;background:var(--purple-700);color:#fff;font-size:11.5px;}
+  .kbd-key.space{grid-column:span 3;color:var(--muted);}
+  .summary-card{
+    background:#fff;
+    border:1.5px solid var(--border);
+    border-left:6px solid var(--purple-500);
+    border-radius:12px;
+    padding:12px 13px;
+    margin-bottom:12px;
+  }
+  .summary-card.sender{border-left-color:var(--green);}
+  .summary-card.receiver{border-left-color:var(--blue);}
+  .summary-card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:6px;
+  }
+  .summary-card-head b{font-size:13.5px;}
+  .summary-card.sender .summary-card-head b{color:var(--green);}
+  .summary-card.receiver .summary-card-head b{color:var(--blue);}
+  .edit-btn{
+    background:#f1eefb;
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:5px 10px;
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--purple-700);
+    cursor:pointer;
+  }
+  .summary-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:12.8px;
+    padding:3px 0;
+    color:var(--text);
+  }
+  .summary-row span:first-child{color:var(--muted);}
+  .badge{
+    display:inline-block;
+    background:var(--purple-100);
+    color:var(--purple-700);
+    font-size:11.5px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:20px;
+  }
+  .money{
+    font-size:26px;
+    font-weight:800;
+    color:var(--red);
+  }
+  .toggle-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .toggle-btn{
+    background:#fff;
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    padding:16px 8px;
+    font-size:15px;
+    font-weight:800;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .toggle-btn.on{background:var(--purple-700);border-color:var(--purple-700);color:#fff;}
+  .fee-preview{
+    background:#fff;
+    border:1.5px solid var(--border);
+    border-radius:14px;
+    padding:16px;
+    text-align:center;
+    margin-bottom:14px;
+  }
+  .fee-preview .lbl{font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .rate-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:11.5px;
+    margin-top:6px;
+  }
+  .rate-table th,.rate-table td{
+    border:1px solid var(--border);
+    padding:6px 4px;
+    text-align:center;
+  }
+  .rate-table th{background:var(--purple-100);color:var(--purple-700);font-weight:700;}
+  .rate-table td.rate-grade{font-weight:700;background:#faf8ff;}
+  .rate-table tr.rate-row-hi td{background:#fff3e0;}
+  .rate-table tr td.rate-hi{background:var(--purple-700);color:#fff;font-weight:800;}
+  .agree-row{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    background:#fff;
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    padding:12px 13px;
+    margin:14px 0;
+  }
+  .agree-row input{width:19px;height:19px;}
+  .agree-row label{font-size:13px;font-weight:700;}
+  .modal-backdrop{
+    position:fixed;inset:0;
+    background:rgba(15,10,25,.6);
+    display:flex;align-items:center;justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .modal-backdrop[hidden]{display:none;}
+  .modal-box{
+    background:#fff;
+    border-radius:16px;
+    width:100%;
+    max-width:400px;
+    max-height:80vh;
+    overflow-y:auto;
+    padding:16px;
+  }
+  .modal-box-sm{max-width:320px;}
+  .modal-title{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:16px;font-weight:800;color:var(--purple-700);
+    margin-bottom:12px;
+  }
+  .modal-x{background:none;border:none;font-size:13px;color:var(--muted);cursor:pointer;font-weight:700;}
+  .modal-search{
+    width:100%;padding:11px;border-radius:10px;border:1.5px solid var(--border);
+    font-size:14px;margin-bottom:10px;font-family:inherit;
+  }
+  .modal-list{display:flex;flex-direction:column;gap:7px;}
+  .modal-list button{
+    text-align:left;
+    background:#faf8ff;
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:10px 12px;
+    font-size:13px;
+    font-family:inherit;
+    cursor:pointer;
+    color:var(--text);
+  }
+  .modal-list button b{display:block;font-size:11px;color:var(--purple-700);}
+  .waybill-card{
+    background:#fff;
+    border:1.5px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .waybill-no{
+    text-align:center;
+    font-size:24px;
+    font-weight:800;
+    letter-spacing:2px;
+    color:var(--purple-700);
+    margin-bottom:10px;
+    font-variant-numeric:tabular-nums;
+  }
+  .label-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ship-label{
+    border-radius:10px;
+    overflow:hidden;
+    border:1.5px solid var(--border);
+  }
+  .ship-label .lab-head{
+    padding:7px;text-align:center;font-size:11.5px;font-weight:800;color:#fff;
+  }
+  .ship-label.pink .lab-head{background:#e85d8a;}
+  .ship-label.violet .lab-head{background:#6f4fc0;}
+  .ship-label .lab-body{padding:9px;font-size:10.5px;background:#fff;color:var(--text);line-height:1.5;}
+  .barcode{
+    height:32px;
+    margin:6px 0;
+    background:repeating-linear-gradient(90deg,#1a1a1a 0 2px,transparent 2px 3px,#1a1a1a 3px 5px,transparent 5px 7px,#1a1a1a 7px 10px,transparent 10px 12px);
+  }
+  .done-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .done-btns .btn{min-height:78px;font-size:13px;display:flex;flex-direction:column;gap:4px;}
+  .done-btns .btn small{font-size:9.5px;font-weight:500;opacity:.85;}
+  .btn-end{background:linear-gradient(180deg,#8a6cd9,#5b2a9e);color:#fff;}
+  .btn-reprint{background:linear-gradient(180deg,#3fb377,#2a8f5a);color:#fff;}
+  .btn-more{background:linear-gradient(180deg,#3fb377,#2a8f5a);color:#fff;}
+  .attach-guide{
+    background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px 13px;font-size:11.8px;color:var(--muted);line-height:1.6;margin-top:14px;
+  }
+  .attach-guide b{color:var(--text);}
+  .hint-src{font-size:10.5px;color:#a79bc4;margin-top:8px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="kiosk">
+    <div id="header" class="kiosk-header"></div>
+    <div id="app" class="kiosk-body"></div>
+    <div id="footer" class="kiosk-footer"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="addrModal" hidden>
+  <div class="modal-box">
+    <div class="modal-title">주소 검색<button class="modal-x" id="addrModalClose">닫기</button></div>
+    <input type="text" id="addrSearchInput" class="modal-search" placeholder="시/구/동으로 검색">
+    <div id="addrResults" class="modal-list"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="shopModal" hidden>
+  <div class="modal-box modal-box-sm">
+    <div class="modal-title">쇼핑몰 접수<button class="modal-x" id="shopModalClose">닫기</button></div>
+    <p style="font-size:13.5px;line-height:1.6;">승인번호를 입력해야 진행할 수 있습니다.</p>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6;">두두택배 접수규정에 쇼핑몰 접수 절차가 정의되어 있지 않아 이 데모에서는 다음 단계로 진행하지 않습니다.</p>
+    <button class="btn btn-primary btn-block" id="shopModalOk">확인</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ==== 상수 (전부 02_접수규정.md 근거) ==== */
+
+var BRANCHES = [
+  {code:'11', name:'서울지점'},
+  {code:'12', name:'용산지점'},
+  {code:'21', name:'대전지점'},
+  {code:'31', name:'진주지점'},
+  {code:'32', name:'거제지점'},
+  {code:'41', name:'울산지점'}
+];
+var ZONES = ['일반','제주','도서산간'];
+// 260807 지점과 권역을 텍스트 입력으로 바꾸면서 추가한 변환·폴백.
+function branchCodeOf(name){
+  for (var i=0;i<BRANCHES.length;i++) if (BRANCHES[i].name === name) return BRANCHES[i].code;
+  return '00';
+}
+function branchNameOf(code){
+  for (var i=0;i<BRANCHES.length;i++) if (BRANCHES[i].code === code) return BRANCHES[i].name;
+  return code || '';
+}
+function normZone(z){ return ZONES.indexOf(z) >= 0 ? z : '일반'; }
+var RATE = [
+  {grade:'극소형', sum:60,  wt:2,  fee:{'일반':3500,'제주':6500,'도서산간':8500}},
+  {grade:'소형',   sum:80,  wt:5,  fee:{'일반':4000,'제주':7000,'도서산간':9000}},
+  {grade:'중형',   sum:120, wt:15, fee:{'일반':6000,'제주':9000,'도서산간':11000}},
+  {grade:'대형',   sum:160, wt:25, fee:{'일반':9000,'제주':12000,'도서산간':14000}}
+];
+var BANNED = {
+  '금전':   ['현금','상품권','유가증권'],
+  '귀중품': ['금','은','보석','시계'],
+  '인화성': ['라이터','부탄가스','페인트','신나','알코올'],
+  '배터리': ['보조배터리','리튬배터리'],
+  '생물':   ['동물','식물'],
+  '온도':   ['냉장','냉동'],
+  '기타':   ['주류','의약품','총포','도검']
+};
+var CATEGORIES = ['의류','잡화·서적류','가전제품류','과일류','곡물류','한약류','김치·식품류','서신·서류'];
+var STEP_LABELS = ['접수구분','무게측정','상품 종류 선택','보내는사람 등록','받는 사람 등록','결제 방법 선택','운임확인','운송장 출력 및 부착'];
+
+var ADDR_SAMPLES = [
+  {q:'서울 강남구', text:'서울특별시 강남구 논현동 117-119'},
+  {q:'서울 용산구', text:'서울특별시 용산구 한강로동 15-3'},
+  {q:'대전 서구',   text:'대전광역시 서구 둔산동 1420'},
+  {q:'경남 진주시', text:'경상남도 진주시 상봉동 393-1'},
+  {q:'경남 거제시', text:'경상남도 거제시 고현동 900'},
+  {q:'울산 남구',   text:'울산광역시 남구 삼산동 1521'},
+  {q:'제주 제주시', text:'제주특별자치도 제주시 연동 300-8'},
+  {q:'제주 서귀포시',text:'제주특별자치도 서귀포시 동홍동 55-2'},
+  {q:'경북 울릉군', text:'경상북도 울릉군 울릉읍 도동리 15'},
+  {q:'인천 옹진군', text:'인천광역시 옹진군 백령면 진촌리 200(백령도)'}
+];
+
+var ICONS = {
+  '의류': '<path d="M8 3l4 2 4-2 3 3-2.5 2.5V21H5.5V8.5L3 6z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/>',
+  '잡화·서적류': '<rect x="4" y="4" width="16" height="16" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="8" y1="4" x2="8" y2="20" stroke="currentColor" stroke-width="1.5"/>',
+  '가전제품류': '<rect x="4" y="5" width="16" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="12" cy="11" r="3" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="8" y1="20" x2="16" y2="20" stroke="currentColor" stroke-width="1.5"/>',
+  '과일류': '<circle cx="12" cy="13" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M12 6c0-2 1.5-3 3-3" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>',
+  '곡물류': '<circle cx="8" cy="9" r="2" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="15" cy="8" r="2" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="11" cy="15" r="2" stroke="currentColor" stroke-width="1.4" fill="none"/><circle cx="17" cy="16" r="2" stroke="currentColor" stroke-width="1.4" fill="none"/>',
+  '한약류': '<path d="M5 11h14l-1.5 8a2 2 0 0 1-2 1.7H8.5A2 2 0 0 1 6.5 19z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/><path d="M9 11c0-3 1.3-6 3-6s3 3 3 6" stroke="currentColor" stroke-width="1.5" fill="none"/>',
+  '김치·식품류': '<path d="M6 8h12v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M6 8l1-4h10l1 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/>',
+  '서신·서류': '<rect x="3.5" y="6" width="17" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/>'
+};
+
+/* ==== 상태 ==== */
+
+function blankState(){
+  return {
+    step: 1,
+    entryType: '',
+    item: {weight:'', w:'', h:'', d:'', category:'', name:''},
+    sender: {name:'', tel:'', addr:'', addr2:'', branch:''},
+    receiver: {name:'', tel:'', addr:'', addr2:'', zone:''},
+    payMethod: '',
+    agree: false,
+    calc: null,
+    waybill: '',
+    etaText: ''
+  };
+}
+var S = blankState();
+var addrModalTarget = '';
+var lastFocused = null;
+
+/* ==== 계산 로직 (02_접수규정.md 3~9절 그대로) ==== */
+
+function round1(n){ return Math.round(n*10)/10; }
+
+function calcFee(item, zone){
+  var w = Number(item.w)||0, h = Number(item.h)||0, d = Number(item.d)||0;
+  var actual = Number(item.weight)||0;
+  var vol = (w*h*d)/6000;
+  var chargeWt = Math.max(actual, vol);
+  var sum = w+h+d;
+  var grade = null;
+  for (var i=0;i<RATE.length;i++){
+    var t = RATE[i];
+    if (sum <= t.sum && chargeWt <= t.wt){ grade = t; break; }
+  }
+  if (!grade){
+    return {over:true, sum:sum, vol:round1(vol), chargeWt:round1(chargeWt)};
+  }
+  return {over:false, grade:grade.grade, sum:sum, vol:round1(vol), chargeWt:round1(chargeWt), fee:grade.fee[zone], zone:zone};
+}
+
+function bannedHit(name){
+  var hits = [];
+  if (!name) return hits;
+  for (var cat in BANNED){
+    var kws = BANNED[cat];
+    for (var i=0;i<kws.length;i++){
+      if (name.indexOf(kws[i]) !== -1) hits.push({cat:cat, kw:kws[i]});
+    }
+  }
+  return hits;
+}
+
+function addBizDays(date, n){
+  var d = new Date(date.getTime());
+  var added = 0;
+  while (added < n){
+    d.setDate(d.getDate()+1);
+    var wd = d.getDay();
+    if (wd !== 0 && wd !== 6) added++;
+  }
+  return d;
+}
+function fmtDate(d){
+  var days = ['일','월','화','수','목','금','토'];
+  var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day+' ('+days[d.getDay()]+')';
+}
+function etaFor(zone){
+  var n = zone==='일반' ? 1 : (zone==='제주' ? 2 : 3);
+  return fmtDate(addBizDays(new Date(), n));
+}
+
+function nextWaybill(branchCode){
+  var key = 'ddb_wb_seq_' + branchCode;
+  var seq = parseInt(sessionStorage.getItem(key)||'0',10) + 1;
+  sessionStorage.setItem(key, String(seq));
+  return branchCode + String(seq).padStart(8,'0');
+}
+
+/* ==== 유틸 ==== */
+
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function val(id){
+  var el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+function money(n){ return Number(n).toLocaleString('ko-KR') + '원'; }
+
+/* ==== 헤더(브랜드 + 8단 진행바) ==== */
+
+function renderHeader(){
+  var crumbs = STEP_LABELS.map(function(label, i){
+    var n = i+1;
+    var cls = 'crumb';
+    if (n === S.step) cls += ' active';
+    else if (n < S.step) cls += ' done';
+    return '<div class="'+cls+'"><b>'+String(n).padStart(2,'0')+'</b><span>'+esc(label)+'</span></div>';
+  }).join('');
+  return ''
+    + '<div class="brand-row">'
+    +   '<div class="brand">두두택배<small>DODOO EXPRESS 접수 키오스크</small></div>'
+    +   '<div class="step-tag">'+S.step+' / 8</div>'
+    + '</div>'
+    + '<div class="crumbs">'+crumbs+'</div>';
+}
+
+/* ==== 화면별 렌더 ==== */
+
+function viewStep1(){
+  return ''
+    + '<h2 class="screen-title">접수 구분을 선택하세요</h2>'
+    + '<div class="notice-box notice-info"><b>수거마감 안내</b><br>평일 17:00 / 토요일 12:00 - 교통상황에 따라 수거 시간이 변경될 수 있습니다.</div>'
+    + '<div class="entry-grid">'
+    +   '<button class="btn btn-entry" data-entry="비회원 택배 접수">비회원 택배 접수<small>처음 접수하시는 분</small></button>'
+    +   '<button class="btn btn-entry" data-entry="회원 택배 접수">회원 택배 접수<small>두두택배 회원이신 분</small></button>'
+    +   '<button class="btn btn-entry" data-entry="점간 택배 접수">점간 택배 접수<small>지점 간 물품 이동</small></button>'
+    +   '<button class="btn btn-entry btn-entry-shop" id="btnShop">쇼핑몰 접수<small>승인번호 입력</small></button>'
+    + '</div>';
+}
+
+function viewStep2(){
+  return ''
+    + '<h2 class="screen-title">무게를 측정하세요</h2>'
+    + '<div class="notice-box notice-warn">저울 위에 상자를 올려놓습니다. 대형(25kg)까지 접수 가능합니다. 중량을 허위로 입력하면 수거가 거부될 수 있습니다.</div>'
+    + '<div class="scale-box">'
+    +   '<div class="gauge-label">측정 상태</div>'
+    +   '<div class="gauge"></div>'
+    +   '<div class="digit-readout"><input type="text" inputmode="decimal" id="f_weight" value="'+esc(S.item.weight)+'" placeholder="0.0"><span class="digit-unit">kg</span></div>'
+    +   '<div class="hint-src">브라우저 데모에는 실물 저울이 없어 숫자를 직접 입력합니다(실물은 자동측정, 근거는 파일 상단 주석 02절 참고).</div>'
+    + '</div>'
+    + '<div class="field"><label>가로 x 세로 x 높이(cm)<span class="req">*</span></label>'
+    +   '<div class="row-3">'
+    +     '<input type="text" inputmode="numeric" id="f_w" placeholder="가로" value="'+esc(S.item.w)+'">'
+    +     '<input type="text" inputmode="numeric" id="f_h" placeholder="세로" value="'+esc(S.item.h)+'">'
+    +     '<input type="text" inputmode="numeric" id="f_d" placeholder="높이" value="'+esc(S.item.d)+'">'
+    +   '</div>'
+    + '</div>'
+    + '<div class="warn-line" id="dimWarn"></div>'
+    + '<div class="row-2">'
+    +   '<button class="btn btn-ghost" id="btnRemeasure">다시측정</button>'
+    +   '<button class="btn btn-primary" id="btnStep2Next">다음</button>'
+    + '</div>';
+}
+
+function iconGridHtml(){
+  return CATEGORIES.map(function(c){
+    var sel = (S.item.category === c) ? ' selected' : '';
+    return '<div class="icon-cell'+sel+'" data-cat="'+esc(c)+'"><svg viewBox="0 0 24 24">'+ICONS[c]+'</svg><span>'+esc(c)+'</span></div>';
+  }).join('');
+}
+
+function viewStep3(){
+  return ''
+    + '<h2 class="screen-title">상품종류를 선택하세요</h2>'
+    + '<div class="icon-grid">'+iconGridHtml()+'</div>'
+    + '<div class="notice-box"><b>이용불가상품</b><br>유리류/사기그릇 · 물품가액 100만원 이상 · 현금/신용증/여권/예술품 · 길이 1m 초과 · 전체 둘레 1.6m 초과 · 중량 30kg 초과 곡물류 · 우편법 규정 신서(예: 서신, 편지) · 액체류 · 살아있는 동물 · 포장하지 않은 상품</div>'
+    + '<div class="field"><label>물품명<span class="req">*</span></label>'
+    +   '<input type="text" id="f_itemname" placeholder="예: 이불, 책, 화장품" value="'+esc(S.item.name)+'">'
+    + '</div>'
+    + '<div class="warn-line" id="banWarn"></div>'
+    + '<div class="row-2">'
+    +   '<button class="btn btn-ghost" id="btnStep3Prev">이전</button>'
+    +   '<button class="btn btn-primary" id="btnStep3Next">다음</button>'
+    + '</div>';
+}
+
+function kbdHtml(){
+  return ''
+    + '<div class="kbd">'
+    +   '<div class="kbd-quick">'
+    +     '<button data-ins="번지">번지</button>'
+    +     '<button data-ins="아파트">아파트</button>'
+    +     '<button data-ins="동">동</button>'
+    +     '<button data-ins="호">호</button>'
+    +     '<button data-ins="(주)">(주)</button>'
+    +   '</div>'
+    +   '<div class="kbd-row">'
+    +     ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ'].map(function(k){return '<div class="kbd-key" data-ins="'+k+'">'+k+'</div>';}).join('')
+    +   '</div>'
+    +   '<div class="kbd-row">'
+    +     ['ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'].map(function(k){return '<div class="kbd-key" data-ins="'+k+'">'+k+'</div>';}).join('')
+    +   '</div>'
+    +   '<div class="kbd-row">'
+    +     ['ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ'].map(function(k){return '<div class="kbd-key" data-ins="'+k+'">'+k+'</div>';}).join('')
+    +   '</div>'
+    +   '<div class="kbd-row">'
+    +     ['ㅠ','ㅡ','ㅣ','1','2','3','4'].map(function(k){return '<div class="kbd-key" data-ins="'+k+'">'+k+'</div>';}).join('')
+    +   '</div>'
+    +   '<div class="kbd-row">'
+    +     '<div class="kbd-key space" id="kbSpace">띄움</div>'
+    +     '<div class="kbd-key wide" id="kbBack">지우기</div>'
+    +   '</div>'
+    + '</div>';
+}
+
+function viewStep4(){
+  var b = S.sender;
+  var branchNames = BRANCHES.map(function(br){ return br.name; }).join(', ');
+  return ''
+    + '<h2 class="screen-title">보내는 사람 입력</h2>'
+    + '<div class="field"><label>보내는 사람 성명<span class="req">*</span></label><input type="text" id="f_sname" value="'+esc(b.name)+'" placeholder="홍길동"></div>'
+    + '<div class="field"><label>보내는 사람 전화번호<span class="req">*</span></label><input type="tel" id="f_stel" value="'+esc(b.tel)+'" placeholder="010-0000-0000"></div>'
+    + '<div class="field"><label>주소<span class="req">*</span></label>'
+    +   '<div class="addr-row"><input type="text" id="f_saddr" readonly value="'+esc(b.addr)+'" placeholder="주소검색을 눌러주세요"><button type="button" id="btnSAddrSearch">주소검색</button></div>'
+    + '</div>'
+    + '<div class="field"><label>상세주소<span class="req">*</span></label><input type="text" id="f_saddr2" value="'+esc(b.addr2)+'" placeholder="동/호수 등"></div>'
+    + '<div class="field"><label>접수 지점<span class="req">*</span></label>'
+    +   '<input type="text" id="f_sbranch" value="'+esc(branchNameOf(b.branch))+'" placeholder="서울지점" autocomplete="off">'
+    +   '<div class="hint-src">등록된 지점: '+branchNames+'. 목록에 없는 이름은 운송장 앞자리가 00으로 나갑니다.</div>'
+    + '</div>'
+    + kbdHtml()
+    + '<div class="warn-line" id="s4warn"></div>'
+    + '<div class="row-2" style="margin-top:12px;">'
+    +   '<button class="btn btn-ghost" id="btnStep4Reset">수정(초기화)</button>'
+    +   '<button class="btn btn-primary" id="btnStep4Next">확인</button>'
+    + '</div>';
+}
+
+function viewStep5(){
+  var r = S.receiver;
+  return ''
+    + '<h2 class="screen-title">받는 사람 입력</h2>'
+    + '<div class="notice-box">05 화면은 CU 실물 정면 캡처가 없습니다(원장 확인). 04 화면과 동일한 구조로 만들었습니다 - 자세한 근거는 파일 맨 위 주석을 참고하세요.</div>'
+    + '<div class="field"><label>받는 사람 성명<span class="req">*</span></label><input type="text" id="f_rname" value="'+esc(r.name)+'" placeholder="이순신"></div>'
+    + '<div class="field"><label>받는 사람 전화번호<span class="req">*</span></label><input type="tel" id="f_rtel" value="'+esc(r.tel)+'" placeholder="010-1111-1111"></div>'
+    + '<div class="field"><label>주소<span class="req">*</span></label>'
+    +   '<div class="addr-row"><input type="text" id="f_raddr" readonly value="'+esc(r.addr)+'" placeholder="주소검색을 눌러주세요"><button type="button" id="btnRAddrSearch">주소검색</button></div>'
+    + '</div>'
+    + '<div class="field"><label>상세주소<span class="req">*</span></label><input type="text" id="f_raddr2" value="'+esc(r.addr2)+'" placeholder="동/호수 등"></div>'
+    + '<div class="field"><label>배송 권역<span class="req">*</span></label>'
+    +   '<input type="text" id="f_rzone" value="'+esc(r.zone)+'" placeholder="일반" autocomplete="off">'
+    +   '<div class="hint-src">입력할 수 있는 권역: '+ZONES.join(', ')+'. 셋 중 하나가 아니면 일반으로 계산합니다.</div>'
+    +   '<div class="hint-src">거제·진주는 일반 지역입니다(규정 2절, 다리·도로로 연결되어 도서산간이 아님).</div>'
+    + '</div>'
+    + kbdHtml()
+    + '<div class="warn-line" id="s5warn"></div>'
+    + '<div class="row-2" style="margin-top:12px;">'
+    +   '<button class="btn btn-ghost" id="btnStep5Prev">이전</button>'
+    +   '<button class="btn btn-primary" id="btnStep5Next">확인</button>'
+    + '</div>';
+}
+
+function viewStep6(){
+  var c = calcFee(S.item, S.receiver.zone);
+  S.calc = c;
+  var payHtml = ''
+    + '<div class="toggle-pair">'
+    +   '<button class="toggle-btn'+(S.payMethod==='선불'?' on':'')+'" data-pay="선불">선불</button>'
+    +   '<button class="toggle-btn'+(S.payMethod==='착불'?' on':'')+'" data-pay="착불">착불</button>'
+    + '</div>';
+  var noteHtml = S.payMethod === '착불'
+    ? '<div class="notice-box notice-warn">착불 - 물품이 도착한 뒤 받는 분이 운임을 지불합니다.</div>'
+    : (S.payMethod === '선불' ? '<div class="notice-box notice-info">선불 - 접수 시점에 운임을 지불합니다.</div>' : '');
+  var feeHtml;
+  if (c.over){
+    feeHtml = '<div class="fee-preview"><div class="lbl">계산 결과</div><div class="money" style="font-size:19px;">접수 불가(대형 한도 초과)</div></div>';
+  } else {
+    feeHtml = '<div class="fee-preview"><div class="lbl">'+esc(c.grade)+' · '+esc(S.receiver.zone)+' 요금</div><div class="money">'+money(c.fee)+'</div></div>';
+  }
+  return ''
+    + '<h2 class="screen-title">결제방법을 선택하세요</h2>'
+    + payHtml
+    + noteHtml
+    + feeHtml
+    + '<div class="notice-box">두두택배 접수규정 3절 요금표는 등급 x 권역 단일 값입니다. CU 실물의 착불수수료·산간이용료·고액할증료 분해 표는 규정에 없는 항목이라 넣지 않았습니다(파일 상단 주석 06절 참고). 선불/착불에 따른 금액 차이도 규정에 없습니다.</div>'
+    + '<div class="row-2">'
+    +   '<button class="btn btn-ghost" id="btnStep6Prev">이전</button>'
+    +   '<button class="btn btn-primary" id="btnStep6Next">다음</button>'
+    + '</div>';
+}
+
+function viewStep7(){
+  var c = calcFee(S.item, S.receiver.zone);
+  S.calc = c;
+  var top = ''
+    + '<div class="summary-card">'
+    +   '<div class="summary-row"><span>운임</span><span class="money" style="font-size:19px;">'+(c.over?'접수 불가':money(c.fee))+'</span></div>'
+    +   '<div class="summary-row"><span>권역</span><span class="badge">'+esc(S.receiver.zone||'-')+'</span></div>'
+    +   '<div class="summary-row"><span>결제방법</span><span class="badge">'+esc(S.payMethod||'-')+'</span></div>'
+    + '</div>';
+
+  var itemCard = ''
+    + '<div class="summary-card">'
+    +   '<div class="summary-card-head"><b>무게·치수 정보</b><button class="edit-btn" data-goto="2">수정</button></div>'
+    +   '<div class="summary-row"><span>실제 무게</span><span>'+esc(S.item.weight)+' kg</span></div>'
+    +   '<div class="summary-row"><span>가로x세로x높이</span><span>'+esc(S.item.w)+' x '+esc(S.item.h)+' x '+esc(S.item.d)+' cm</span></div>'
+    +   '<div class="summary-row"><span>세 변의 합</span><span>'+c.sum+' cm</span></div>'
+    +   '<div class="summary-row"><span>부피 무게</span><span>'+c.vol+' kg</span></div>'
+    +   '<div class="summary-row"><span>요금 무게</span><span>'+c.chargeWt+' kg</span></div>'
+    +   '<div class="summary-row"><span>크기 등급</span><span class="badge">'+(c.over?'초과':esc(c.grade))+'</span></div>'
+    + '</div>';
+
+  var catCard = ''
+    + '<div class="summary-card">'
+    +   '<div class="summary-card-head"><b>상품 종류·물품명</b><button class="edit-btn" data-goto="3">수정</button></div>'
+    +   '<div class="summary-row"><span>상품분류</span><span>'+esc(S.item.category||'-')+'</span></div>'
+    +   '<div class="summary-row"><span>물품명</span><span>'+esc(S.item.name)+'</span></div>'
+    + '</div>';
+
+  var senderCard = ''
+    + '<div class="summary-card sender">'
+    +   '<div class="summary-card-head"><b>보내는 사람</b><button class="edit-btn" data-goto="4">수정</button></div>'
+    +   '<div class="summary-row"><span>이름</span><span>'+esc(S.sender.name)+'</span></div>'
+    +   '<div class="summary-row"><span>주소</span><span>'+esc(S.sender.addr)+' '+esc(S.sender.addr2)+'</span></div>'
+    +   '<div class="summary-row"><span>연락처</span><span>'+esc(S.sender.tel)+'</span></div>'
+    +   '<div class="summary-row"><span>접수 지점</span><span>'+esc(branchName(S.sender.branch))+'</span></div>'
+    + '</div>';
+
+  var receiverCard = ''
+    + '<div class="summary-card receiver">'
+    +   '<div class="summary-card-head"><b>받는 사람</b><button class="edit-btn" data-goto="5">수정</button></div>'
+    +   '<div class="summary-row"><span>이름</span><span>'+esc(S.receiver.name)+'</span></div>'
+    +   '<div class="summary-row"><span>주소</span><span>'+esc(S.receiver.addr)+' '+esc(S.receiver.addr2)+'</span></div>'
+    +   '<div class="summary-row"><span>연락처</span><span>'+esc(S.receiver.tel)+'</span></div>'
+    + '</div>';
+
+  var rejectHtml = '';
+  var payBtnHtml = '';
+  if (c.over){
+    rejectHtml = '<div class="notice-box notice-danger"><b>접수 불가</b><br>대형 한도를 넘었습니다.<br>세 변의 합 '+c.sum+'cm (한도 160cm)<br>요금 무게 '+c.chargeWt+'kg (한도 25kg)<br>크기를 줄이거나 나누어 접수하세요.</div>';
+    payBtnHtml = '<button class="btn btn-ghost btn-block" id="btnStep7Prev">이전</button>';
+  } else {
+    payBtnHtml = ''
+      + '<div class="agree-row">'
+      +   '<input type="checkbox" id="f_agree" '+(S.agree?'checked':'')+'>'
+      +   '<label for="f_agree">개인정보 수집 및 이용에 동의합니다</label>'
+      + '</div>'
+      + '<div class="row-2">'
+      +   '<button class="btn btn-ghost" id="btnStep7Prev">이전</button>'
+      +   '<button class="btn btn-primary" id="btnStep7Print" '+(S.agree?'':'disabled')+'>운송장 출력</button>'
+      + '</div>';
+  }
+
+  return ''
+    + '<h2 class="screen-title">운임을 확인해주세요</h2>'
+    + top
+    + itemCard
+    + catCard
+    + senderCard
+    + receiverCard
+    + rejectHtml
+    + '<div class="notice-box"><b>요금표(전체)</b>'+rateTableHtml(c.over?'':c.grade, S.receiver.zone)+'</div>'
+    + payBtnHtml;
+}
+
+function rateTableHtml(hiGrade, hiZone){
+  var rows = RATE.map(function(t){
+    var cells = ZONES.map(function(z){
+      var isHi = (t.grade===hiGrade && z===hiZone);
+      return '<td class="'+(isHi?'rate-hi':'')+'">'+t.fee[z].toLocaleString('ko-KR')+'</td>';
+    }).join('');
+    var rowCls = (t.grade===hiGrade) ? ' class="rate-row-hi"' : '';
+    return '<tr'+rowCls+'><td class="rate-grade">'+t.grade+'</td><td>'+t.sum+'cm↓</td><td>'+t.wt+'kg↓</td>'+cells+'</tr>';
+  }).join('');
+  return '<table class="rate-table"><thead><tr><th>등급</th><th>세변합</th><th>무게</th><th>일반</th><th>제주</th><th>도서산간</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function branchName(code){
+  for (var i=0;i<BRANCHES.length;i++){ if (BRANCHES[i].code===code) return BRANCHES[i].name; }
+  return '-';
+}
+
+function viewStep8(){
+  var c = S.calc || {};
+  return ''
+    + '<h2 class="screen-title">운송장 출력 및 부착</h2>'
+    + '<div class="waybill-card">'
+    +   '<div class="waybill-no">'+esc(S.waybill)+'</div>'
+    +   '<div class="summary-row"><span>서비스</span><span>'+esc(S.entryType)+'</span></div>'
+    +   '<div class="summary-row"><span>접수 지점</span><span>'+esc(branchName(S.sender.branch))+'</span></div>'
+    +   '<div class="summary-row"><span>도착 권역</span><span>'+esc(S.receiver.zone)+'</span></div>'
+    +   '<div class="summary-row"><span>도착 예정</span><span>'+esc(S.etaText)+'</span></div>'
+    +   '<div class="summary-row"><span>결제 금액</span><span class="money" style="font-size:18px;">'+money(c.fee||0)+'</span></div>'
+    + '</div>'
+    + '<div class="done-btns">'
+    +   '<button class="btn btn-end" id="btnEnd">종료<small>추가 접수 없음</small></button>'
+    +   '<button class="btn btn-reprint" id="btnReprint">다시 출력<small>출력 안 된 경우</small></button>'
+    +   '<button class="btn btn-more" id="btnMore">추가 접수<small>물건이 더 있음</small></button>'
+    + '</div>'
+    + '<div class="attach-guide">'
+    +   '<b>운송장 부착 방법</b>'
+    +   '<div class="label-pair" style="margin-top:8px;">'
+    +     '<div class="ship-label pink"><div class="lab-head">물건에 부착</div><div class="lab-body">'+esc(S.waybill)+'<div class="barcode"></div>보내는분 '+esc(S.sender.name)+'<br>받는분 '+esc(S.receiver.name)+'</div></div>'
+    +     '<div class="ship-label violet"><div class="lab-head">고객 보관</div><div class="lab-body">'+esc(S.waybill)+'<div class="barcode"></div>조회는 두두택배 홈페이지에서<br>운송장번호로 확인</div></div>'
+    +   '</div>'
+    + '</div>';
+}
+
+/* ==== 렌더 디스패치 ==== */
+
+function currentView(){
+  switch(S.step){
+    case 1: return viewStep1();
+    case 2: return viewStep2();
+    case 3: return viewStep3();
+    case 4: return viewStep4();
+    case 5: return viewStep5();
+    case 6: return viewStep6();
+    case 7: return viewStep7();
+    case 8: return viewStep8();
+    default: return '';
+  }
+}
+
+function renderFooter(){
+  if (S.step === 8) return '';
+  var prevDisabled = (S.step === 1) ? 'disabled' : '';
+  return ''
+    + '<button class="btn btn-ghost btn-block" id="btnMain">메인화면</button>'
+    + '<button class="btn btn-ghost btn-block" id="btnPrevFooter" '+prevDisabled+'>이전화면</button>';
+}
+
+function render(){
+  document.getElementById('header').innerHTML = renderHeader();
+  document.getElementById('app').innerHTML = currentView();
+  document.getElementById('footer').innerHTML = renderFooter();
+  document.getElementById('app').scrollTop = 0;
+  bindStepEvents();
+  bindFooterEvents();
+}
+
+function goTo(n){
+  S.step = n;
+  render();
+}
+
+/* ==== 화면별 이벤트 바인딩 ==== */
+
+function bindStepEvents(){
+  if (S.step === 1) bindStep1();
+  else if (S.step === 2) bindStep2();
+  else if (S.step === 3) bindStep3();
+  else if (S.step === 4) bindStep4();
+  else if (S.step === 5) bindStep5();
+  else if (S.step === 6) bindStep6();
+  else if (S.step === 7) bindStep7();
+  else if (S.step === 8) bindStep8();
+}
+
+function bindFooterEvents(){
+  var m = document.getElementById('btnMain');
+  if (m) m.addEventListener('click', function(){
+    if (S.step === 1) return;
+    if (confirm('처음 화면으로 돌아가시겠습니까? 입력한 내용이 모두 사라집니다.')){
+      S = blankState();
+      render();
+    }
+  });
+  var p = document.getElementById('btnPrevFooter');
+  if (p) p.addEventListener('click', function(){
+    if (S.step > 1){ S.step--; render(); }
+  });
+}
+
+function bindStep1(){
+  var btns = document.querySelectorAll('.btn-entry[data-entry]');
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      S.entryType = b.getAttribute('data-entry');
+      goTo(2);
+    });
+  });
+  document.getElementById('btnShop').addEventListener('click', function(){
+    document.getElementById('shopModal').hidden = false;
+  });
+}
+
+function bindStep2(){
+  document.getElementById('btnRemeasure').addEventListener('click', function(){
+    document.getElementById('f_weight').value = '';
+    document.getElementById('f_w').value = '';
+    document.getElementById('f_h').value = '';
+    document.getElementById('f_d').value = '';
+  });
+  document.getElementById('btnStep2Next').addEventListener('click', function(){
+    var weight = val('f_weight'), w = val('f_w'), h = val('f_h'), d = val('f_d');
+    var warn = document.getElementById('dimWarn');
+    if (!weight || !w || !h || !d){ warn.textContent = '빈 칸이 있습니다.'; return; }
+    if ([weight,w,h,d].some(function(x){ return !(Number(x) > 0); })){ warn.textContent = '0보다 큰 숫자를 입력하세요.'; return; }
+    warn.textContent = '';
+    S.item.weight = weight; S.item.w = w; S.item.h = h; S.item.d = d;
+    goTo(3);
+  });
+}
+
+function bindStep3(){
+  document.querySelectorAll('.icon-cell').forEach(function(cell){
+    cell.addEventListener('click', function(){
+      document.querySelectorAll('.icon-cell').forEach(function(c){ c.classList.remove('selected'); });
+      cell.classList.add('selected');
+      S.item.category = cell.getAttribute('data-cat');
+    });
+  });
+  var nameInput = document.getElementById('f_itemname');
+  var banWarn = document.getElementById('banWarn');
+  nameInput.addEventListener('input', function(){
+    var hits = bannedHit(nameInput.value.trim());
+    if (hits.length){
+      banWarn.innerHTML = '접수 불가 품목입니다 - '+hits[0].cat+' / '+hits[0].kw+'<br>요금 계산 전에 거절합니다.';
+    } else {
+      banWarn.textContent = '';
+    }
+  });
+  document.getElementById('btnStep3Prev').addEventListener('click', function(){ goTo(2); });
+  document.getElementById('btnStep3Next').addEventListener('click', function(){
+    if (!S.item.category){ banWarn.textContent = '상품 종류를 선택하세요.'; return; }
+    var name = nameInput.value.trim();
+    if (!name){ banWarn.textContent = '빈 칸이 있습니다.'; return; }
+    var hits = bannedHit(name);
+    if (hits.length){
+      alert('접수 불가 품목입니다.');
+      return;
+    }
+    S.item.name = name;
+    goTo(4);
+  });
+}
+
+function bindKeyboard(){
+  document.querySelectorAll('.kbd-key[data-ins], .kbd-quick button[data-ins]').forEach(function(k){
+    k.addEventListener('click', function(){ kbInsert(k.getAttribute('data-ins')); });
+  });
+  var sp = document.getElementById('kbSpace');
+  if (sp) sp.addEventListener('click', function(){ kbInsert(' '); });
+  var bk = document.getElementById('kbBack');
+  if (bk) bk.addEventListener('click', kbBackspace);
+}
+
+function bindStep4(){
+  bindKeyboard();
+  document.getElementById('btnSAddrSearch').addEventListener('click', function(){ openAddrModal('sender'); });
+  document.getElementById('btnStep4Reset').addEventListener('click', function(){
+    document.getElementById('f_sname').value = '';
+    document.getElementById('f_stel').value = '';
+    document.getElementById('f_saddr').value = '';
+    document.getElementById('f_saddr2').value = '';
+    document.getElementById('f_sbranch').value = '';
+  });
+  document.getElementById('btnStep4Next').addEventListener('click', function(){
+    var name = val('f_sname'), tel = val('f_stel'), addr = val('f_saddr'), addr2 = val('f_saddr2'), branch = branchCodeOf(val('f_sbranch'));
+    var warn = document.getElementById('s4warn');
+    if (!name || !tel || !addr || !addr2 || !branch){ warn.textContent = '빈 칸이 있습니다.'; return; }
+    warn.textContent = '';
+    S.sender = {name:name, tel:tel.replace(/[^0-9]/g,''), addr:addr, addr2:addr2, branch:branch};
+    goTo(5);
+  });
+}
+
+function bindStep5(){
+  bindKeyboard();
+  document.getElementById('btnRAddrSearch').addEventListener('click', function(){ openAddrModal('receiver'); });
+  document.getElementById('btnStep5Prev').addEventListener('click', function(){ goTo(4); });
+  document.getElementById('btnStep5Next').addEventListener('click', function(){
+    var name = val('f_rname'), tel = val('f_rtel'), addr = val('f_raddr'), addr2 = val('f_raddr2'), zone = normZone(val('f_rzone'));
+    var warn = document.getElementById('s5warn');
+    if (!name || !tel || !addr || !addr2 || !zone){ warn.textContent = '빈 칸이 있습니다.'; return; }
+    warn.textContent = '';
+    S.receiver = {name:name, tel:tel.replace(/[^0-9]/g,''), addr:addr, addr2:addr2, zone:zone};
+    goTo(6);
+  });
+}
+
+function bindStep6(){
+  document.querySelectorAll('.toggle-btn[data-pay]').forEach(function(b){
+    b.addEventListener('click', function(){
+      S.payMethod = b.getAttribute('data-pay');
+      render();
+    });
+  });
+  document.getElementById('btnStep6Prev').addEventListener('click', function(){ goTo(5); });
+  document.getElementById('btnStep6Next').addEventListener('click', function(){
+    if (!S.payMethod){ alert('결제 방법을 선택하세요.'); return; }
+    goTo(7);
+  });
+}
+
+function bindStep7(){
+  document.querySelectorAll('.edit-btn[data-goto]').forEach(function(b){
+    b.addEventListener('click', function(){ goTo(Number(b.getAttribute('data-goto'))); });
+  });
+  var prevBtn = document.getElementById('btnStep7Prev');
+  if (prevBtn) prevBtn.addEventListener('click', function(){ goTo(6); });
+  var agreeBox = document.getElementById('f_agree');
+  if (agreeBox) agreeBox.addEventListener('change', function(){
+    S.agree = agreeBox.checked;
+    var printBtn = document.getElementById('btnStep7Print');
+    if (printBtn) printBtn.disabled = !S.agree;
+  });
+  var printBtn = document.getElementById('btnStep7Print');
+  if (printBtn) printBtn.addEventListener('click', function(){
+    if (!S.agree) return;
+    S.waybill = nextWaybill(S.sender.branch);
+    S.etaText = etaFor(S.receiver.zone);
+    goTo(8);
+  });
+}
+
+function bindStep8(){
+  document.getElementById('btnEnd').addEventListener('click', function(){
+    S = blankState();
+    render();
+  });
+  document.getElementById('btnReprint').addEventListener('click', function(){
+    alert('운송장 '+S.waybill+' 을(를) 다시 출력했습니다.');
+  });
+  document.getElementById('btnMore').addEventListener('click', function(){
+    S.item = {weight:'', w:'', h:'', d:'', category:'', name:''};
+    S.payMethod = ''; S.agree = false; S.calc = null; S.waybill = ''; S.etaText = '';
+    S.step = 2;
+    render();
+  });
+}
+
+/* ==== 주소검색 모달 ==== */
+
+function openAddrModal(target){
+  addrModalTarget = target;
+  document.getElementById('addrSearchInput').value = '';
+  renderAddrResults('');
+  document.getElementById('addrModal').hidden = false;
+  document.getElementById('addrSearchInput').focus();
+}
+function renderAddrResults(q){
+  var list = ADDR_SAMPLES.filter(function(a){
+    if (!q) return true;
+    return (a.q + a.text).indexOf(q) !== -1;
+  });
+  var html = list.map(function(a){
+    return '<button data-addr="'+esc(a.text)+'"><b>'+esc(a.q)+'</b>'+esc(a.text)+'</button>';
+  }).join('');
+  document.getElementById('addrResults').innerHTML = html || '<div style="font-size:12.5px;color:var(--muted);padding:8px;">검색 결과가 없습니다.</div>';
+  document.querySelectorAll('#addrResults button[data-addr]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var text = btn.getAttribute('data-addr');
+      if (addrModalTarget === 'sender'){
+        S.sender.addr = text;
+        var el = document.getElementById('f_saddr');
+        if (el) el.value = text;
+      } else {
+        S.receiver.addr = text;
+        var el2 = document.getElementById('f_raddr');
+        if (el2) el2.value = text;
+      }
+      document.getElementById('addrModal').hidden = true;
+    });
+  });
+}
+
+/* ==== 온스크린 키보드(장식 + 기능) ==== */
+
+document.addEventListener('focusin', function(e){
+  if (e.target && e.target.tagName === 'INPUT' && (e.target.type === 'text' || e.target.type === 'tel')){
+    lastFocused = e.target;
+  }
+});
+function kbInsert(ch){
+  if (!lastFocused) return;
+  var start = lastFocused.selectionStart != null ? lastFocused.selectionStart : lastFocused.value.length;
+  var end = lastFocused.selectionEnd != null ? lastFocused.selectionEnd : lastFocused.value.length;
+  lastFocused.value = lastFocused.value.slice(0,start) + ch + lastFocused.value.slice(end);
+  var pos = start + ch.length;
+  lastFocused.focus();
+  try { lastFocused.setSelectionRange(pos,pos); } catch(e){}
+}
+function kbBackspace(){
+  if (!lastFocused) return;
+  var start = lastFocused.selectionStart != null ? lastFocused.selectionStart : lastFocused.value.length;
+  var end = lastFocused.selectionEnd != null ? lastFocused.selectionEnd : lastFocused.value.length;
+  if (start === end && start > 0){
+    lastFocused.value = lastFocused.value.slice(0,start-1) + lastFocused.value.slice(end);
+    start = start - 1;
+  } else {
+    lastFocused.value = lastFocused.value.slice(0,start) + lastFocused.value.slice(end);
+  }
+  lastFocused.focus();
+  try { lastFocused.setSelectionRange(start,start); } catch(e){}
+}
+
+/* ==== 전역(모달 등) 초기화 - 1회만 바인딩 ==== */
+
+document.getElementById('addrModalClose').addEventListener('click', function(){
+  document.getElementById('addrModal').hidden = true;
+});
+document.getElementById('addrSearchInput').addEventListener('input', function(){
+  renderAddrResults(this.value.trim());
+});
+document.getElementById('shopModalClose').addEventListener('click', function(){
+  document.getElementById('shopModal').hidden = true;
+});
+document.getElementById('shopModalOk').addEventListener('click', function(){
+  document.getElementById('shopModal').hidden = true;
+});
+
+/* ==== 시작 ==== */
+
+render();
+
+})();
+</script>
+</body>
+</html>
