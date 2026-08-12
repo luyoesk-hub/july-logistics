@@ -1,0 +1,7 @@
+# ... existing code ...
+.env
+__pycache__/
+.streamlit/
+.venv/
+venv/
+*.pyc
